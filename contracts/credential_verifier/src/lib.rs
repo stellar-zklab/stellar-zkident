@@ -59,8 +59,8 @@ impl CredentialVerifierContract {
         env: Env,
         subject: Address,
         credential_type: CredentialType,
-        proof: Bytes,
-        public_inputs: Vec<BytesN<32>>,
+        _proof: Bytes,
+        _public_inputs: Vec<BytesN<32>>,
         issuer: Address,
         expires_at: u64,
     ) -> bool {

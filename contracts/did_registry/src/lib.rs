@@ -84,7 +84,7 @@ impl DIDRegistryContract {
         env.storage().persistent().set(&DataKey::DID(owner.clone()), &record);
 
         env.events().publish(
-            (symbol_short!("did"), symbol_short!("deactivate")),
+            (symbol_short!("did"), symbol_short!("deact")),
             owner,
         );
     }
