@@ -1,2 +1,4 @@
 target/
 .env
+circuits/*/target/
+node_modules/
