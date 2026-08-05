@@ -5,7 +5,6 @@
 
 [![CI](https://github.com/stellar-zklab/stellar-zkident/actions/workflows/ci.yml/badge.svg)](https://github.com/stellar-zklab/stellar-zkident/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Stellar Drips Wave](https://img.shields.io/badge/Stellar-Drips%20Wave-blueviolet)](https://drips.network)
 [![Soroban Version](https://img.shields.io/badge/Soroban-v22.0.0-orange)](https://developers.stellar.org)
 
 ---
@@ -66,32 +65,12 @@ It establishes an identity layer for the Stellar ecosystem: allowing users to an
 Each DID is uniquely generated from a Stellar public address:
 $$\text{DID} = \text{did:stellar:}\langle\text{Stellar-Address}\rangle$$
 
-**DID Document Schema (JSON-LD)**:
-```json
-{
-  "@context": ["https://www.w3.org/ns/did/v1"],
-  "id": "did:stellar:GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN",
-  "verificationMethod": [{
-    "id": "did:stellar:GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN#key-1",
-    "type": "Ed25519VerificationKey2020",
-    "controller": "did:stellar:GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN"
-  }],
-  "authentication": ["did:stellar:GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN#key-1"]
-}
-```
-
 ### 2. Noir ZK Circuit Equations
 
 #### Age Proof Circuit (`circuits/age_proof`)
 Proves user birth year $Y_{\text{birth}} \le Y_{\text{current}} - 18$:
 $$C = \text{Poseidon}(Y_{\text{birth}}, M_{\text{birth}}, D_{\text{birth}}, \text{salt})$$
 $$\text{Assert: } Y_{\text{birth}} \le Y_{\text{current}} - 18 \quad \land \quad C == \text{PublicCommitment}$$
-
-#### ASP Merkle Set Membership Circuit (`circuits/membership_proof`)
-Proves inclusion of leaf $L$ in Merkle tree with root $R$ at depth $D=20$:
-$$H_0 = \text{Poseidon}(L)$$
-$$H_{i+1} = \text{Poseidon}(H_i, \text{Sibling}_i) \quad \text{or} \quad \text{Poseidon}(\text{Sibling}_i, H_i)$$
-$$\text{Assert: } H_{20} == R$$
 
 ---
 
@@ -117,45 +96,6 @@ Single-line composable helper callable by any external Soroban smart contract to
 
 ---
 
-### 3. `ReputationNFTContract` (`contracts/reputation_nft`)
-
-#### `mint(env: Env, admin: Address, subject: Address, initial_score: i64) -> u64`
-Mints a soulbound reputation token for a subject.
-
-#### `transfer(env: Env, from: Address, to: Address, token_id: u64)`
-**Always Panics**: `panic!("soulbound: transfer not allowed")`.
-
----
-
-### 4. `ASPRegistryContract` (`contracts/asp_registry`)
-
-#### `register_asp(env: Env, admin: Address, asp: Address, merkle_root: BytesN<32>)`
-Registers an Association Set Provider with its compliance Merkle root.
-
----
-
-## Directory Structure
-
-```
-stellar-zkident/
-├── contracts/
-│   ├── did_registry/           # W3C did:stellar method registry
-│   ├── credential_verifier/    # ZK proof verification & has_credential()
-│   ├── reputation_nft/         # Soulbound Token (SBT) reputation engine
-│   └── asp_registry/           # Association Set Provider Merkle roots
-├── circuits/
-│   ├── age_proof/              # Noir circuit: Age >= 18 proof
-│   ├── kyc_tier_proof/         # Noir circuit: KYC level proof
-│   └── membership_proof/       # Noir circuit: Merkle set inclusion proof
-├── sdk/                        # TypeScript SDK
-├── frontend/                   # React identity manager dashboard
-├── docs/                       # Architecture, DID spec, credential types
-└── scripts/
-    └── deploy.sh               # Testnet deployment script
-```
-
----
-
 ## Developer Quick Start
 
 ### Build Contracts
@@ -171,31 +111,17 @@ cargo test --all --features testutils
 cargo build --release --target wasm32v1-none
 ```
 
-### Compile Noir Circuits
-
-```bash
-# Install Nargo (Noir CLI)
-curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
-
-# Compile circuits
-cd circuits/age_proof && nargo compile
-cd ../kyc_tier_proof && nargo compile
-cd ../membership_proof && nargo compile
-```
-
 ---
 
-## 🌊 Contributing — Stellar Drips Wave
+## 🤝 Contributing & Community Roadmap
 
-`stellar-zkident` participates in the **[Stellar Drips Wave](https://drips.network)** program.
+`stellar-zkident` is an open-source identity primitive for Stellar. We welcome contributions from developers, security auditors, and identity protocols!
 
-| Category | Points | Tasks |
-|---|---|---|
-| 🔴 **High Complexity** | 200 pts | Noir circuit specs, credential verifier, reputation SBT |
-| 🟡 **Medium Complexity** | 150 pts | DID registry CRUD, ASP Merkle manager, SDK |
-| 🟢 **Trivial Complexity** | 100 pts | Documentation, DID spec, testnet deploy script |
-
-Browse open issues on [GitHub Issues](https://github.com/stellar-zklab/stellar-zkident/issues).
+### How to Contribute
+1. **Explore Issues**: Check out open tasks tagged [`good-first-issue`](https://github.com/stellar-zklab/stellar-zkident/issues?q=is%3Aissue+is%3Aopen+label%3A%22good-first-issue%22) or [`help-wanted`](https://github.com/stellar-zklab/stellar-zkident/issues).
+2. **Fork & Branch**: Create a feature branch (`git checkout -b feat/your-feature`).
+3. **Test Your Changes**: Ensure all unit tests pass (`cargo test --all --features testutils`).
+4. **Submit a Pull Request**: Open a PR with a clear summary of your changes.
 
 ---
 
