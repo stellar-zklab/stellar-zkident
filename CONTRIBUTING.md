@@ -1,36 +1,92 @@
-# Contributing Guidelines
+# Contributing to stellar-zkident 🔐🪪
 
-Thank you for your interest in contributing! We welcome pull requests, bug reports, feature proposals, and documentation improvements from the developer community.
+Welcome to **`stellar-zkident`**! We are building the **Zero-Knowledge Decentralized Identity (DID) and Soulbound Reputation Primitive** for the Stellar (Soroban) ecosystem.
 
-## 🛠️ Local Development Quickstart
+We welcome contributions from Rust developers, Noir ZK circuit engineers, W3C identity specialists, and frontend builders.
+
+---
+
+## 🚀 About the Protocol & Ecosystem Impact
+
+`stellar-zkident` establishes a privacy-first identity layer for Stellar:
+- Anchors self-sovereign DIDs (`did:stellar:<address>`) on-chain.
+- Verifies real-world credentials (Age, KYC tier, Residency, Employment, ASP Set Membership) via **Noir Zero-Knowledge Proofs**.
+- Mints non-transferable **Soulbound Reputation Tokens (SBTs)**.
+- Enables external DeFi protocols to verify user compliance (`has_credential()`) in a single line of Rust without exposing user personal data.
+
+---
+
+## 🗺️ Technical Architecture & Contribution Roadmap
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     DEVELOPMENT ROADMAP PHASES                          │
+│                                                                         │
+│  Phase 1: Core Contracts & Noir Circuits (Scaffolded & Verified)        │
+│    ├── did_registry (W3C did:stellar method)                           │
+│    ├── credential_verifier & asp_registry                              │
+│    └── Noir circuits (age_proof, kyc_tier_proof, membership_proof)     │
+│                                                                         │
+│  Phase 2: Off-Chain Attestation & SDK (Active Contribution)            │
+│    ├── TypeScript SDK (@stellar-zklab/zkident-sdk)                     │
+│    ├── Ed25519 issuer off-chain attestation CLI tool                   │
+│    └── IPFS DID Document CID storage integration                       │
+│                                                                         │
+│  Phase 3: Identity Dashboard & Wallet Sign-In (Upcoming)               │
+│    ├── React DID & Credential Manager dashboard                        │
+│    ├── Sign-In-With-Stellar (SIWS) authentication component             │
+│    └── Multi-credential ZK proof aggregation circuit                   │
+│                                                                         │
+│  Phase 4: Ecosystem Composability & Compliance (Future)                │
+│    ├── ASP Merkle root automatic sync daemon                           │
+│    ├── Fuzz testing for raw DID JSON-LD strings                        │
+│    └── Soulbound reputation tier lookup helpers                        │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🛠️ Developer Environment Quickstart
+
+### Prerequisites
+- **Rust Toolchain**: `rustup target add wasm32v1-none`
+- **Nargo (Noir CLI)**: v0.30.0+ (`noirup`)
+- **Stellar CLI**: v22.0.0+
+
+### Build & Run Tests
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/stellar-zklab/stellar-zkident.git
 cd stellar-zkident
 
-# 2. Run smart contract unit tests
+# Run unit tests across all 4 contracts
 cargo test --all --features testutils
 
-# 3. Build release WASM binaries
-cargo build --release --target wasm32v1-none
+# Compile Noir ZK circuits
+cd circuits/age_proof && nargo compile
+cd ../kyc_tier_proof && nargo compile
+cd ../membership_proof && nargo compile
 ```
 
-## 🌿 Git Branch & Commit Conventions
+---
 
-Please use conventional commit prefixes for clean commit histories:
-- `feat:` New features or contract functionality
-- `fix:` Bug fixes or contract logic patches
-- `docs:` Documentation, inline comments, or README updates
-- `test:` Unit tests or integration test suites
-- `ci:` GitHub Actions CI workflow updates
+## 🌿 Git Branch & Conventional Commits
 
-Example: `feat(stream): add rate limiting per sender address`
+| Prefix | Usage | Example |
+|---|---|---|
+| `feat:` | New feature or contract function | `feat(did): add batch_is_active query helper` |
+| `fix:` | Bug fix or logic patch | `fix(verifier): update credential expiry validation` |
+| `docs:` | Documentation updates | `docs(did): add W3C did:stellar specification` |
+| `circuit:` | Noir circuit changes | `circuit(kyc): add proof aggregation constraints` |
 
-## 📋 Pull Request Process
+---
 
-1. Fork the repository and create your branch from `main`.
-2. Ensure all smart contract unit tests pass (`cargo test --all --features testutils`).
-3. Verify that code formatting adheres to standard Rust formatting (`cargo fmt -- --check`).
-4. Submit your Pull Request with a descriptive summary of your changes.
+## 📋 How to Claim an Issue & Submit a PR
 
+1. **Pick an Issue**: Browse open tasks on [GitHub Issues](https://github.com/stellar-zklab/stellar-zkident/issues). Look for [`good-first-issue`](https://github.com/stellar-zklab/stellar-zkident/issues?q=is%3Aissue+is%3Aopen+label%3A%22good-first-issue%22).
+2. **Create a Branch**: `git checkout -b feat/your-feature-name`
+3. **Verify Locally**: Ensure `cargo test --all --features testutils` passes.
+4. **Submit PR**: Open a Pull Request referencing the issue number (e.g. `Closes #8`).
+
+Thank you for building self-sovereign identity on Stellar! 🪪
