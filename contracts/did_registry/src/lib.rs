@@ -1,14 +1,24 @@
 #![no_std]
 use soroban_sdk::{
     contract, contractimpl, contracttype, symbol_short,
-    Address, Env, String,
+    Address, Env, String, Vec,
 };
+
+#[derive(Clone)]
+#[contracttype]
+pub struct VerificationKey {
+    pub key_id: String,
+    pub key_type: String,
+    pub public_key: String,
+    pub active: bool,
+}
 
 #[derive(Clone)]
 #[contracttype]
 pub struct DIDRecord {
     pub owner: Address,
     pub document: String,
+    pub keys: Vec<VerificationKey>,
     pub active: bool,
     pub created_at: u64,
     pub updated_at: u64,
@@ -42,6 +52,7 @@ impl DIDRegistryContract {
         let record = DIDRecord {
             owner: owner.clone(),
             document: document.clone(),
+            keys: Vec::new(&env),
             active: true,
             created_at: now,
             updated_at: now,
@@ -53,6 +64,25 @@ impl DIDRegistryContract {
             owner,
         );
         document
+    }
+
+    pub fn add_verification_key(env: Env, owner: Address, key_id: String, key_type: String, public_key: String) {
+        owner.require_auth();
+        let mut record: DIDRecord = env.storage()
+            .persistent()
+            .get(&DataKey::DID(owner.clone()))
+            .expect("DID not found");
+        assert!(record.active, "DID is deactivated");
+
+        let key = VerificationKey { key_id, key_type, public_key, active: true };
+        record.keys.push_back(key);
+        record.updated_at = env.ledger().timestamp();
+        env.storage().persistent().set(&DataKey::DID(owner.clone()), &record);
+
+        env.events().publish(
+            (symbol_short!("did"), symbol_short!("key_add")),
+            owner,
+        );
     }
 
     pub fn update_did(env: Env, owner: Address, document: String) {
