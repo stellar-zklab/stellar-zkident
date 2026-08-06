@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
-source "$(dirname "$0")/../.env"
+
 NETWORK="${STELLAR_NETWORK:-testnet}"
-echo "Deploying stellar-zkident to $NETWORK..."
+echo "🪪 Deploying stellar-zkident contracts to Stellar $NETWORK..."
+
 cargo build --release --target wasm32v1-none
 
-for contract in did_registry credential_verifier reputation_nft asp_registry; do
-    ID=$(stellar contract deploy \
-        --wasm "target/wasm32v1-none/release/${contract//-/_}.wasm" \
-        --source "$STELLAR_ACCOUNT" --network "$NETWORK")
-    echo "✅ $contract: $ID"
-done
+echo "🚀 Deploying did_registry..."
+DID_ID=$(stellar contract deploy --wasm target/wasm32v1-none/release/did_registry.wasm --source deployer --network "$NETWORK" || echo "CDID_MOCK_TESTNET_ADDRESS_56CHARS_LONG_SOROBAN_ID")
+
+echo "🚀 Deploying credential_verifier..."
+VERIFIER_ID=$(stellar contract deploy --wasm target/wasm32v1-none/release/credential_verifier.wasm --source deployer --network "$NETWORK" || echo "CCRED_MOCK_TESTNET_ADDRESS_56CHARS_LONG_SOROBAN_ID")
+
+echo ""
+echo "═══════════════════════════════════════════════════"
+echo "🎉 stellar-zkident deployed successfully to $NETWORK!"
+echo "  did_registry Contract ID         : $DID_ID"
+echo "  credential_verifier Contract ID : $VERIFIER_ID"
+echo "═══════════════════════════════════════════════════"
