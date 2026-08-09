@@ -1,15 +1,12 @@
-## Summary
+## 📝 Summary of Changes
+Briefly describe what this PR changes or implements.
 
-## Related Issue
+## 🔗 Related Issue
 Closes #
 
-## Changes
-- [ ] Smart contract changes
-- [ ] Noir circuit changes
-- [ ] Documentation updates
-- [ ] Tests added
+## ✅ Checklist
+- [ ] Code compiles cleanly (\`cargo build --release --target wasm32v1-none\`)
+- [ ] Smart contract unit tests pass (\`cargo test --all --features testutils\`)
+- [ ] Code adheres to Rust formatting guidelines (\`cargo fmt -- --check\`)
+- [ ] Follows Conventional Commits standard (\`feat:\`, \`fix:\`, \`docs:\`)
 
-## Testing
-```bash
-cargo test --all --features testutils
-```
