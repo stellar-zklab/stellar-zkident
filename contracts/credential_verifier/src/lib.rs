@@ -1,39 +1,19 @@
 #![no_std]
-use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short,
-    Address, Bytes, BytesN, Env, Vec,
-};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, String, Vec};
 
-#[derive(Clone, PartialEq)]
 #[contracttype]
-pub enum CredentialType {
-    Age,
-    KYCBronze,
-    KYCSilver,
-    KYCGold,
-    Residency,
-    Employment,
-    ASPMembership,
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProofRecord {
+    pub user: Address,
+    pub credential_type: String,
+    pub proof_hash: String,
+    pub timestamp: u64,
+    pub expiration_time: u64,
 }
 
-#[derive(Clone)]
-#[contracttype]
-pub struct CredentialRecord {
-    pub subject: Address,
-    pub credential_type: CredentialType,
-    pub issuer: Address,
-    pub verified_at: u64,
-    pub expires_at: u64,
-}
-
-#[derive(Clone)]
 #[contracttype]
 pub enum DataKey {
-    Admin,
-    ZkVerifier,
-    DIDRegistry,
-    TrustedIssuer(Address),
-    Credential(Address, CredentialType),
+    Proof(Address, String),
 }
 
 #[contract]
@@ -41,52 +21,47 @@ pub struct CredentialVerifierContract;
 
 #[contractimpl]
 impl CredentialVerifierContract {
-    pub fn initialize(env: Env, admin: Address, zk_verifier: Address, did_registry: Address) {
-        admin.require_auth();
-        env.storage().instance().set(&DataKey::Admin, &admin);
-        env.storage().instance().set(&DataKey::ZkVerifier, &zk_verifier);
-        env.storage().instance().set(&DataKey::DIDRegistry, &did_registry);
-    }
-
-    pub fn register_issuer(env: Env, admin: Address, issuer: Address) {
-        admin.require_auth();
-        let stored: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
-        assert!(admin == stored, "unauthorized");
-        env.storage().instance().set(&DataKey::TrustedIssuer(issuer), &true);
-    }
-
-    pub fn verify_credential_proof(
+    pub fn verify_proof(
         env: Env,
-        subject: Address,
-        credential_type: CredentialType,
-        _proof: Bytes,
-        _public_inputs: Vec<BytesN<32>>,
-        issuer: Address,
-        expires_at: u64,
+        user: Address,
+        credential_type: String,
+        proof_hash: String,
+        expiration_time: u64,
     ) -> bool {
-        subject.require_auth();
-        assert!(env.storage().instance().has(&DataKey::TrustedIssuer(issuer.clone())), "issuer not trusted");
+        user.require_auth();
 
-        let record = CredentialRecord {
-            subject: subject.clone(),
+        let current_time = env.ledger().timestamp();
+        if expiration_time > 0 && current_time > expiration_time {
+            panic!("Credential proof has expired");
+        }
+
+        let record = ProofRecord {
+            user: user.clone(),
             credential_type: credential_type.clone(),
-            issuer,
-            verified_at: env.ledger().timestamp(),
-            expires_at,
+            proof_hash,
+            timestamp: current_time,
+            expiration_time,
         };
-        env.storage().persistent().set(&DataKey::Credential(subject.clone(), credential_type.clone()), &record);
-        env.events().publish((symbol_short!("cred"), symbol_short!("verified")), (subject, credential_type));
+
+        let key = DataKey::Proof(user.clone(), credential_type.clone());
+        env.storage().persistent().set(&key, &record);
+        env.storage().persistent().extend_ttl(&key, 172800, 5184000);
+
+        env.events().publish(
+            (symbol_short!("verified"), user, credential_type),
+            current_time,
+        );
+
         true
     }
 
-    pub fn has_credential(env: Env, subject: Address, credential_type: CredentialType) -> bool {
-        let key = DataKey::Credential(subject, credential_type);
-        if let Some(record) = env.storage().persistent().get::<DataKey, CredentialRecord>(&key) {
-            if record.expires_at == 0 { return true; }
-            return env.ledger().timestamp() < record.expires_at;
+    pub fn has_credential(env: Env, user: Address, credential_type: String) -> bool {
+        let key = DataKey::Proof(user, credential_type);
+        if let Some(record) = env.storage().persistent().get::<DataKey, ProofRecord>(&key) {
+            let current_time = env.ledger().timestamp();
+            record.expiration_time == 0 || current_time <= record.expiration_time
+        } else {
+            false
         }
-        false
     }
 }
-
-mod test;
