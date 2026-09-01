@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Env, String};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -21,6 +21,14 @@ pub struct CredentialVerifierContract;
 
 #[contractimpl]
 impl CredentialVerifierContract {
+    /// NOTE — despite the name, this does NOT perform any zero-knowledge or cryptographic
+    /// verification. `proof_hash` is accepted as an opaque string and stored as-is; nothing
+    /// checks it against the actual Noir circuits in `circuits/membership_proof` or
+    /// `circuits/age_proof`, and nothing checks it against `asp_registry`'s stored Merkle
+    /// roots either — the two are currently disconnected. Any caller can currently get
+    /// `has_credential()` to return true for any `credential_type` by calling this with an
+    /// arbitrary string. Real proof verification (checking `proof_hash` against a Noir/PLONK
+    /// verifier and an ASP's registered Merkle root) is unimplemented.
     pub fn verify_proof(
         env: Env,
         user: Address,
