@@ -2,3 +2,4 @@ target/
 .env
 circuits/*/target/
 node_modules/
+frontend/dist/
