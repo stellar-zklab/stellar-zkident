@@ -34,6 +34,18 @@ impl ASPRegistryContract {
     pub fn is_registered_asp(env: Env, asp: Address) -> bool {
         env.storage().persistent().get::<DataKey, ASPRecord>(&DataKey::ASP(asp)).map(|r| r.active).unwrap_or(false)
     }
+
+    /// Returns the ASP's currently registered Merkle root, or `None` if the ASP is
+    /// unregistered or has been deactivated. This is the value other contracts (e.g.
+    /// `credential_verifier`) must call to get a trustworthy root — it must never be
+    /// accepted as a caller-supplied argument, since that would let anyone point at an
+    /// attacker-controlled root instead of this registry's real one.
+    pub fn get_merkle_root(env: Env, asp: Address) -> Option<BytesN<32>> {
+        env.storage()
+            .persistent()
+            .get::<DataKey, ASPRecord>(&DataKey::ASP(asp))
+            .and_then(|r| if r.active { Some(r.merkle_root) } else { None })
+    }
 }
 
 mod test;
