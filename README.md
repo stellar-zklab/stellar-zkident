@@ -19,6 +19,14 @@ Self-Sovereign `did:stellar:` Decentralized Identity, Noir UltraPlonk ZK Credent
 
 **`circuits/` — real Noir source, not yet connected to anything on-chain.**
 
+## Deployment
+
+`scripts/deploy.sh` deploys all four real contracts to Stellar testnet and wires up their
+real cross-contract dependencies (`credential_verifier` is initialized with
+`asp_registry`'s actual deployed address, `reputation_nft` with `credential_verifier`'s) —
+see [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md). Resulting contract IDs land in
+`deployments/testnet.json`.
+
 ## 🚀 Quick Start
 ```bash
 cargo test --all --features testutils
