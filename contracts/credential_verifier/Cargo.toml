@@ -8,10 +8,17 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 soroban-sdk = { workspace = true }
-asp-registry = { path = "../asp_registry", default-features = false }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+# Dev-only: used in tests to deploy a real in-process asp_registry instance. Must NOT be a
+# normal [dependencies] entry — linking its crate (which has its own #[contract]/#[contractimpl]
+# code) into this contract's wasm caused a real bug: asp_registry's exported functions
+# collided with this contract's own in the compiled wasm's export table, and this contract's
+# real `initialize` silently vanished ("trying to invoke non-existent contract function,
+# initialize" on a genuinely deployed testnet contract). The actual cross-contract call in
+# lib.rs uses `env.invoke_contract` instead, which needs no such dependency.
+asp-registry = { path = "../asp_registry", default-features = false }
 
 [features]
 testutils = ["soroban-sdk/testutils"]

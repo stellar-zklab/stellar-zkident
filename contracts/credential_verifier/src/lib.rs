@@ -1,6 +1,5 @@
 #![no_std]
-use asp_registry::ASPRegistryContractClient;
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Bytes, BytesN, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Bytes, BytesN, Env, String, Symbol, Vec};
 
 /// Stellar strkey addresses (both `G...` account keys and `C...` contract keys) are always
 /// exactly 56 ASCII characters — 32-byte payload + 1 version byte + 2-byte checksum, base32
@@ -91,8 +90,17 @@ impl CredentialVerifierContract {
             .instance()
             .get(&DataKey::AspRegistry)
             .expect("contract not initialized");
-        let registry_client = ASPRegistryContractClient::new(&env, &asp_registry);
-        let root = match registry_client.get_merkle_root(&asp) {
+        // A typed `ASPRegistryContractClient` would require depending on asp_registry's own
+        // crate, which also defines its own #[contract]/#[contractimpl] — linking that source
+        // into this contract's wasm caused its exports to collide with this contract's own
+        // (this contract's real `initialize` silently disappeared from the compiled wasm on a
+        // real testnet deploy). A raw invoke needs no such dependency.
+        let root: Option<BytesN<32>> = env.invoke_contract(
+            &asp_registry,
+            &Symbol::new(&env, "get_merkle_root"),
+            Vec::from_array(&env, [asp.to_val()]),
+        );
+        let root = match root {
             Some(root) => root,
             None => return false,
         };
