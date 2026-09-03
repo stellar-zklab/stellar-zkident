@@ -6,6 +6,9 @@
     "asp_registry": "CD5BJLK36ZHKLHRE4L3LUDEEM5SM2ME5XLALIIGTCZ6OTMXJSPLWR75C",
     "credential_verifier": "CAHGQ3OH2MSJBVQ4DGDPBX7VPROCKVB2YA32QCLIPYX2766WZJPJCWTA",
     "did_registry": "CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6",
-    "reputation_nft": "CCP6BTCMMYBKEZ2T2DL32JSFSEVPGLWXMNXWPXEHNSTGTPC7BDU4Z5AT"
+    "reputation_nft": "CC3LKAQ4LOXZYIWSQBGDO7GF747QMIOZFJQEUZP6DWZXZWZ2UNJMNJ27"
+  },
+  "notes": {
+    "reputation_nft": "Redeployed 2026-09-03 after mint() was changed to require a real verified credential_type argument — CCP6BT...4Z5AT was the pre-fix instance and is stale."
   }
 }

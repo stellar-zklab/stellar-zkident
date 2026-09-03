@@ -30,7 +30,7 @@ All four contracts are live on Stellar testnet (deployed 2026-09-03, see
 | `asp_registry` | `CD5BJLK36ZHKLHRE4L3LUDEEM5SM2ME5XLALIIGTCZ6OTMXJSPLWR75C` |
 | `credential_verifier` | `CAHGQ3OH2MSJBVQ4DGDPBX7VPROCKVB2YA32QCLIPYX2766WZJPJCWTA` |
 | `did_registry` | `CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6` |
-| `reputation_nft` | `CCP6BTCMMYBKEZ2T2DL32JSFSEVPGLWXMNXWPXEHNSTGTPC7BDU4Z5AT` |
+| `reputation_nft` | `CC3LKAQ4LOXZYIWSQBGDO7GF747QMIOZFJQEUZP6DWZXZWZ2UNJMNJ27` |
 
 `credential_verifier` is initialized with `asp_registry`'s real deployed address above, and
 `reputation_nft` with `credential_verifier`'s — these aren't independently deployed
