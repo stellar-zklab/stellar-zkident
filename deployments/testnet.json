@@ -9,6 +9,7 @@
     "reputation_nft": "CC3LKAQ4LOXZYIWSQBGDO7GF747QMIOZFJQEUZP6DWZXZWZ2UNJMNJ27"
   },
   "notes": {
-    "reputation_nft": "Redeployed 2026-09-03 after mint() was changed to require a real verified credential_type argument — CCP6BT...4Z5AT was the pre-fix instance and is stale."
+    "reputation_nft": "Redeployed 2026-09-03 after mint() was changed to require a real verified credential_type argument — CCP6BT...4Z5AT was the pre-fix instance and is stale.",
+    "asp_registry": "One real ASP registered 2026-09-03: the deployer address (GAUZ4T6U...) acting as its own demo attestation service, vouching for its own real 'kyc_tier_2' credential via a real 4-leaf Merkle tree. Root: c17e4274704d431b91f0698c84eff82693005c05250c6efab856733047d09d53. This is what the frontend's 'Verify Real Credential On-Chain' button checks against."
   }
 }
