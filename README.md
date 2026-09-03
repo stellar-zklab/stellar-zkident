@@ -21,11 +21,22 @@ Self-Sovereign `did:stellar:` Decentralized Identity, Noir UltraPlonk ZK Credent
 
 ## Deployment
 
-`scripts/deploy.sh` deploys all four real contracts to Stellar testnet and wires up their
-real cross-contract dependencies (`credential_verifier` is initialized with
-`asp_registry`'s actual deployed address, `reputation_nft` with `credential_verifier`'s) —
-see [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md). Resulting contract IDs land in
-`deployments/testnet.json`.
+All four contracts are live on Stellar testnet (deployed 2026-09-03, see
+[`deployments/testnet.json`](deployments/testnet.json) — independently checkable on
+[stellar.expert](https://stellar.expert/explorer/testnet)):
+
+| Contract | Address |
+|---|---|
+| `asp_registry` | `CD5BJLK36ZHKLHRE4L3LUDEEM5SM2ME5XLALIIGTCZ6OTMXJSPLWR75C` |
+| `credential_verifier` | `CAHGQ3OH2MSJBVQ4DGDPBX7VPROCKVB2YA32QCLIPYX2766WZJPJCWTA` |
+| `did_registry` | `CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6` |
+| `reputation_nft` | `CCP6BTCMMYBKEZ2T2DL32JSFSEVPGLWXMNXWPXEHNSTGTPC7BDU4Z5AT` |
+
+`credential_verifier` is initialized with `asp_registry`'s real deployed address above, and
+`reputation_nft` with `credential_verifier`'s — these aren't independently deployed
+instances that merely coexist, they're actually wired to each other on-chain.
+`scripts/deploy.sh` reproduces this from scratch — see
+[`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md).
 
 ## 🚀 Quick Start
 ```bash
