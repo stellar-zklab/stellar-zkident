@@ -11,6 +11,11 @@ soroban-sdk = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
+# Dev-only, same reasoning as credential_verifier's own dev-dependency on asp-registry: used
+# to deploy a real in-process credential_verifier (and the asp_registry it needs) for tests,
+# never linked into this contract's release wasm.
+credential-verifier = { path = "../credential_verifier", default-features = false }
+asp-registry = { path = "../asp_registry", default-features = false }
 
 [features]
 testutils = ["soroban-sdk/testutils"]

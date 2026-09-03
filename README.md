@@ -11,7 +11,7 @@ Self-Sovereign `did:stellar:` Decentralized Identity, Noir UltraPlonk ZK Credent
 
 **`contracts/did_registry` — real.** Full DID document CRUD: register, add verification keys, update, deactivate, resolve. No shortcuts.
 
-**`contracts/reputation_nft` — real.** Mint, read, and a soulbound `transfer()` that correctly always reverts (non-transferable by design).
+**`contracts/reputation_nft` — real, and now actually gated by a verified credential.** `mint()` used to accept an admin's say-so alone — it stored `credential_verifier`'s address at `initialize()` but never called it, so reputation could be minted for anyone regardless of whether they'd ever verified anything. It now calls `credential_verifier.has_credential(subject, credential_type)` for real (via a raw `env.invoke_contract`, not a crate dependency — see `credential_verifier`'s own note on why) and rejects the mint if that comes back false. `get_reputation()` and a soulbound `transfer()` that correctly always reverts (non-transferable by design) are unchanged.
 
 **`contracts/asp_registry` — real.** Stores a Merkle root per registered Attestation Service Provider, plus `get_merkle_root()` for other contracts to read it. Now actually consumed by `credential_verifier` — see below.
 
