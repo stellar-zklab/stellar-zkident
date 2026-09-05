@@ -19,8 +19,8 @@ import freighter from '@stellar/freighter-api';
 
 const zkident = new StellarZkIdentClient({
   didRegistryId: 'CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6',
-  credentialVerifierId: 'CAHGQ3OH2MSJBVQ4DGDPBX7VPROCKVB2YA32QCLIPYX2766WZJPJCWTA',
-  reputationNftId: 'CC3LKAQ4LOXZYIWSQBGDO7GF747QMIOZFJQEUZP6DWZXZWZ2UNJMNJ27',
+  credentialVerifierId: 'CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF',
+  reputationNftId: 'CDA34SUCSQDOCCY5B6HJJH4CQ5PUDWII6CY3BDONGKT5E3KTEWZJ47GD',
   signTransaction: async (xdr, opts) => {
     const { signedTxXdr } = await freighter.signTransaction(xdr, opts);
     return signedTxXdr;
