@@ -5,6 +5,7 @@ members = [
     "contracts/credential_verifier",
     "contracts/reputation_nft",
     "contracts/asp_registry",
+    "contracts/zk_verifier",
 ]
 
 [workspace.dependencies]

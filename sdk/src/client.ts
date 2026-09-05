@@ -8,10 +8,13 @@
  * to Freighter, so this SDK works with any wallet adapter that can produce a signed
  * transaction XDR string.
  *
- * Note on naming: despite the repo name, `credential_verifier.verify_proof()` checks
- * classical Merkle inclusion, not a zero-knowledge proof — the leaf is derived directly
- * from the caller's real address, so membership isn't hidden. See the main repo README's
- * "Current Status" section.
+ * Note on naming: `credential_verifier.verify_proof()` checks classical Merkle inclusion,
+ * not a zero-knowledge proof — the leaf is derived directly from the caller's real
+ * address, so membership isn't hidden. See the main repo README's "Current Status"
+ * section. Real zero-knowledge verification lives separately, in the three zk_verifier
+ * instances this client's verifyAgeProof/verifyKycTierProof/verifyMembershipProof methods
+ * call — genuine Groth16 BN254 proofs for age/KYC-tier/Merkle-membership claims, verified
+ * on-chain without revealing the underlying private data. See ../circuits/README.md.
  */
 import { Client as ContractClient } from '@stellar/stellar-sdk/contract';
 
@@ -24,6 +27,11 @@ export interface StellarZkIdentConfig {
   didRegistryId: string;
   credentialVerifierId: string;
   reputationNftId?: string;
+  /** Real zk_verifier instance addresses — one per circuit, see circuits/README.md. Each
+   * is optional independently; only configure the ones your app actually uses. */
+  ageProofVerifierId?: string;
+  kycTierVerifierId?: string;
+  membershipVerifierId?: string;
   rpcUrl?: string;
   networkPassphrase?: string;
   signTransaction: SignTransaction;
@@ -58,6 +66,9 @@ export class StellarZkIdentClient {
   private didRegistryId: string;
   private credentialVerifierId: string;
   private reputationNftId?: string;
+  private ageProofVerifierId?: string;
+  private kycTierVerifierId?: string;
+  private membershipVerifierId?: string;
   private rpcUrl: string;
   private networkPassphrase: string;
   private signTransaction: SignTransaction;
@@ -66,6 +77,9 @@ export class StellarZkIdentClient {
     this.didRegistryId = config.didRegistryId;
     this.credentialVerifierId = config.credentialVerifierId;
     this.reputationNftId = config.reputationNftId;
+    this.ageProofVerifierId = config.ageProofVerifierId;
+    this.kycTierVerifierId = config.kycTierVerifierId;
+    this.membershipVerifierId = config.membershipVerifierId;
     this.rpcUrl = config.rpcUrl ?? 'https://soroban-testnet.stellar.org';
     this.networkPassphrase = config.networkPassphrase ?? 'Test SDF Network ; September 2015';
     this.signTransaction = config.signTransaction;
@@ -136,5 +150,48 @@ export class StellarZkIdentClient {
     const client = await this.getClient(this.reputationNftId);
     const tx = await (client as any).get_reputation({ subject });
     return (tx.result as ReputationData | null) ?? null;
+  }
+
+  /** Read-only: verifies a real Groth16 BN254 proof against a deployed zk_verifier
+   * instance. `proof` and `publicInputs` must be in the exact byte layout
+   * circuits/convert_to_soroban.mjs produces — see circuits/README.md for how a real
+   * proof for one of these circuits is generated. No signature needed; verification
+   * itself reveals nothing about the private witness. */
+  private async verifyZkProof(verifierId: string, proof: Uint8Array, publicInputs: Uint8Array[]): Promise<boolean> {
+    const client = await this.getClient(verifierId);
+    const tx = await (client as any).vrfy_prf({
+      proof: Buffer.from(proof),
+      public_inputs: publicInputs.map((b) => Buffer.from(b)),
+    });
+    return tx.result as boolean;
+  }
+
+  /** Verifies a real zero-knowledge proof that the prover is at least 18, without
+   * revealing their birth date. Requires `ageProofVerifierId` in the client config. */
+  async verifyAgeProof(proof: Uint8Array, publicInputs: Uint8Array[]): Promise<boolean> {
+    if (!this.ageProofVerifierId) {
+      throw new Error('verifyAgeProof() requires ageProofVerifierId in the client config');
+    }
+    return this.verifyZkProof(this.ageProofVerifierId, proof, publicInputs);
+  }
+
+  /** Verifies a real zero-knowledge proof that the prover holds at least a given KYC
+   * tier, without revealing their actual tier. Requires `kycTierVerifierId` in the client
+   * config. */
+  async verifyKycTierProof(proof: Uint8Array, publicInputs: Uint8Array[]): Promise<boolean> {
+    if (!this.kycTierVerifierId) {
+      throw new Error('verifyKycTierProof() requires kycTierVerifierId in the client config');
+    }
+    return this.verifyZkProof(this.kycTierVerifierId, proof, publicInputs);
+  }
+
+  /** Verifies a real zero-knowledge proof of membership in a depth-20 Merkle tree,
+   * without revealing which leaf, its value, or the sibling path. Requires
+   * `membershipVerifierId` in the client config. */
+  async verifyMembershipProof(proof: Uint8Array, publicInputs: Uint8Array[]): Promise<boolean> {
+    if (!this.membershipVerifierId) {
+      throw new Error('verifyMembershipProof() requires membershipVerifierId in the client config');
+    }
+    return this.verifyZkProof(this.membershipVerifierId, proof, publicInputs);
   }
 }

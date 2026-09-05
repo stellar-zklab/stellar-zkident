@@ -1,7 +1,0 @@
-[package]
-name = "kyc_tier_proof"
-type = "bin"
-authors = ["stellar-zklab"]
-compiler_version = ">=0.30.0"
-
-[dependencies]
