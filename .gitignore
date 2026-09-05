@@ -3,3 +3,4 @@ target/
 circuits/*/target/
 node_modules/
 frontend/dist/
+sdk/dist/
