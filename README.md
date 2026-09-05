@@ -17,24 +17,49 @@ Self-Sovereign `did:stellar:` Decentralized Identity, real Groth16 Zero-Knowledg
 ## Architecture
 
 ```
-                    ┌──────────────────┐
-                    │   did_registry    │  register / update / resolve DID documents
-                    └──────────────────┘
++----------------------------+
+|        did_registry        |
++----------------------------+
+(register / update / resolve DID documents)
 
-┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐
-│ asp_registry │───►│ credential_verifier│──►│  reputation_nft   │
-│ (Merkle root  │    │ (Merkle inclusion, │   │ (soulbound, gated │
-│  per ASP)     │    │  NOT zero-knowledge)│  │  on has_credential)│
-└──────────────┘    └──────────────────┘    └──────────────────┘
+Classical credential path:
++----------------------------+
+|        asp_registry        |
+|        (Merkle root        |
+|          per ASP)          |
++----------------------------+
+            |  get_merkle_root()
+            v
++----------------------------+
+|    credential_verifier     |
+|    (Merkle inclusion --    |
+|    NOT zero-knowledge)     |
++----------------------------+
+            |  has_credential()
+            v
++----------------------------+
+|       reputation_nft       |
+|     (soulbound, gated      |
+|   on real verification)    |
++----------------------------+
 
-         Real zero-knowledge path (separate from the above):
-
-┌───────────────┐   ┌──────────────────────────────────────┐
-│ Circom circuit │──►│ zk_verifier (one deployed instance    │
-│ + Groth16 proof│   │ per circuit: age_proof, kyc_tier_proof,│
-│ (off-chain)    │   │ membership_proof) — real BN254 pairing │
-└───────────────┘   │ check via env.crypto().bn254()         │
-                     └──────────────────────────────────────┘
+Real zero-knowledge path (separate from the above):
++----------------------------+
+|      Circom circuit +      |
+|       Groth16 proof        |
+|   (generated off-chain)    |
++----------------------------+
+            |  vrfy_prf()
+            v
++----------------------------+
+|        zk_verifier         |
+|     (one instance per      |
+|    circuit: age_proof,     |
+|      kyc_tier_proof,       |
+|    membership_proof --     |
+|     real BN254 pairing     |
+|           check)           |
++----------------------------+
 ```
 
 ## Current Status — what's real vs. not
