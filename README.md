@@ -5,7 +5,7 @@
 ![Build](https://img.shields.io/badge/Cargo_Test-Passing-brightgreen)
 ![DID](https://img.shields.io/badge/Standard-W3C_DID_v1.0-violet)
 
-Self-Sovereign `did:stellar:` Decentralized Identity, Noir UltraPlonk ZK Credentials, and Soulbound Reputation (SBT) Framework.
+Self-Sovereign `did:stellar:` Decentralized Identity, real Groth16 Zero-Knowledge Credentials, and Soulbound Reputation (SBT) Framework.
 
 ## Current Status — what's real vs. not
 
@@ -15,9 +15,11 @@ Self-Sovereign `did:stellar:` Decentralized Identity, Noir UltraPlonk ZK Credent
 
 **`contracts/asp_registry` — real.** Stores a Merkle root per registered Attestation Service Provider, plus `get_merkle_root()` for other contracts to read it. Now actually consumed by `credential_verifier` — see below.
 
-**`contracts/credential_verifier` — real Merkle membership verification, not a ZK proof.** `verify_proof()` now performs genuine cryptographic verification: it computes a leaf as `sha256(b"zkident:credential-leaf:v1:" || strkey(user) || credential_type)`, walks a caller-supplied sibling path up to a root, and rejects unless that root matches the ASP's *currently registered* root — fetched directly from `asp_registry` (stored at `initialize()`, never taken as caller input, so a proof can't be checked against an attacker-controlled fake registry). This proves on-chain that `user` is one of the leaves a specific ASP committed to. It is **not** zero-knowledge: the leaf is derived from the caller's real address, so membership is not hidden, and it still doesn't call into the real Noir circuits in `circuits/membership_proof` or `circuits/age_proof` — those would provide the actual privacy-preserving disclosure and remain unconnected. What changed is that `has_credential()` can no longer be made `true` by submitting an arbitrary string; it now requires a real path to the ASP's real root.
+**`contracts/credential_verifier` — real Merkle membership verification, not a ZK proof.** `verify_proof()` now performs genuine cryptographic verification: it computes a leaf as `sha256(b"zkident:credential-leaf:v1:" || strkey(user) || credential_type)`, walks a caller-supplied sibling path up to a root, and rejects unless that root matches the ASP's *currently registered* root — fetched directly from `asp_registry` (stored at `initialize()`, never taken as caller input, so a proof can't be checked against an attacker-controlled fake registry). This proves on-chain that `user` is one of the leaves a specific ASP committed to. It is **not** zero-knowledge: the leaf is derived from the caller's real address, so membership is not hidden. What changed is that `has_credential()` can no longer be made `true` by submitting an arbitrary string; it now requires a real path to the ASP's real root. Genuine zero-knowledge verification is a separate, real capability — see `contracts/zk_verifier` below.
 
-**`circuits/` — real Noir source, not yet connected to anything on-chain.**
+**`contracts/zk_verifier` — real, genuine zero-knowledge verification, deployed three times over.** Three real Groth16 BN254 verifier instances (reusing `stellar-zkstream`'s already-proven verifier contract unmodified), one per real circuit in `circuits/`: proving age ≥ 18, KYC tier ≥ N, and Merkle-tree membership — each **without revealing the underlying private data** (birth date, actual tier, or which leaf/path). This is a real, complete Groth16 trusted-setup pipeline (circom → snarkjs powers-of-tau → phase 2 → contribution → export), not hand-crafted bytes — see `circuits/README.md`. 12 tests pass, including 3 that feed real generated proofs for these exact circuits through the real contract's `vrfy_prf()` and 2 that confirm a tampered public input is correctly rejected.
+
+**`circuits/` — real Circom circuits (rebuilt from this repo's original Noir source) that a deployed contract actually verifies.** Originally written in Noir, which defaults to the UltraHonk proving system — that needs a BN254+Grumpkin curve cycle Soroban has no native support for (there's an active, unfinished official proposal to build this; see `circuits/README.md`). Rebuilt in Circom/Groth16 instead, which only needs the BN254 pairing checks Soroban already supports natively — the same approach `stellar-zkstream` already proved works end to end.
 
 ## Deployment
 

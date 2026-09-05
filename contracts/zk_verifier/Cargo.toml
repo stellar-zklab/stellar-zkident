@@ -1,0 +1,29 @@
+[package]
+name = "zk-verifier"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Pinned directly (not `workspace = true`) rather than bumping the whole workspace's
+# soroban-sdk 22.0.0 pin — real BN254 host crypto (env.crypto().bn254()) doesn't exist
+# before soroban-sdk 25.x. This contract has no Rust-level dependency on any other
+# contract in this workspace (only on-chain address/byte interop), so it can safely pin
+# its own version without touching the already-deployed did_registry/credential_verifier/
+# asp_registry/reputation_nft, which stay on 22.0.0 unchanged.
+soroban-sdk = { version = "25.0.0" }
+
+[dev-dependencies]
+soroban-sdk = { version = "25.0.0", features = ["testutils"] }
+ark-bn254 = "0.4"
+ark-ec = "0.4"
+ark-ff = "0.4"
+ark-groth16 = "0.4"
+ark-relations = "0.4"
+ark-snark = "0.4"
+ark-std = { version = "0.4", features = ["std"] }
+
+[features]
+testutils = ["soroban-sdk/testutils"]
