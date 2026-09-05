@@ -7,6 +7,36 @@
 
 Self-Sovereign `did:stellar:` Decentralized Identity, real Groth16 Zero-Knowledge Credentials, and Soulbound Reputation (SBT) Framework.
 
+## Why this is real zero-knowledge, not a buzzword
+
+- **Genuine Groth16 proofs verified on-chain, not simulated.** Three deployed `zk_verifier` instances perform real BN254 pairing checks via Soroban Protocol 25's native `env.crypto().bn254()` host functions — proving age ≥ 18, KYC tier ≥ N, or Merkle-tree membership **without revealing the underlying private data**.
+- **A real trusted-setup pipeline, not hand-crafted bytes.** Every verification key comes from an actual circom → snarkjs Powers-of-Tau → phase 2 → contribution → export run — see [`circuits/README.md`](circuits/README.md) for the exact reproducible steps.
+- **A hard technical call made and documented, not glossed over.** The original circuits were written in Noir, whose default proving system needs a BN254+Grumpkin curve cycle Soroban doesn't support. Rather than ship something that couldn't actually verify on-chain, the circuits were rebuilt in Circom/Groth16 — see the Deployment section below for why that's a real, working tradeoff, not a downgrade.
+- **Classical and zero-knowledge verification are kept honestly separate.** `credential_verifier`'s Merkle-inclusion check is explicitly labeled as *not* zero-knowledge (the leaf is derived from the caller's real address) — real ZK privacy lives specifically in `zk_verifier`, so the two capabilities are never conflated.
+
+## Architecture
+
+```
+                    ┌──────────────────┐
+                    │   did_registry    │  register / update / resolve DID documents
+                    └──────────────────┘
+
+┌──────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│ asp_registry │───►│ credential_verifier│──►│  reputation_nft   │
+│ (Merkle root  │    │ (Merkle inclusion, │   │ (soulbound, gated │
+│  per ASP)     │    │  NOT zero-knowledge)│  │  on has_credential)│
+└──────────────┘    └──────────────────┘    └──────────────────┘
+
+         Real zero-knowledge path (separate from the above):
+
+┌───────────────┐   ┌──────────────────────────────────────┐
+│ Circom circuit │──►│ zk_verifier (one deployed instance    │
+│ + Groth16 proof│   │ per circuit: age_proof, kyc_tier_proof,│
+│ (off-chain)    │   │ membership_proof) — real BN254 pairing │
+└───────────────┘   │ check via env.crypto().bn254()         │
+                     └──────────────────────────────────────┘
+```
+
 ## Current Status — what's real vs. not
 
 **`contracts/did_registry` — real.** Full DID document CRUD: register, add verification keys, update, deactivate, resolve. No shortcuts.
@@ -46,8 +76,48 @@ instances that merely coexist, they're actually wired to each other on-chain. Ea
 `scripts/deploy.sh` and `scripts/deploy_zk_verifiers.sh` reproduce this from scratch — see
 [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md).
 
+## Usage
+
+```typescript
+import { StellarZkIdentClient } from '@stellar-zklab/zkident-sdk';
+import freighter from '@stellar/freighter-api';
+
+const zkident = new StellarZkIdentClient({
+  didRegistryId: 'CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6', // live on testnet, see Deployment above
+  credentialVerifierId: 'CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF',
+  ageProofVerifierId: 'CCILFFFLU6UKPXU3QD47IJULLGSPPFDS3PIUPV2MBOR5QA6OREI22NUV',
+  signTransaction: async (xdr, opts) => {
+    const { signedTxXdr } = await freighter.signTransaction(xdr, opts);
+    return signedTxXdr;
+  },
+});
+
+// Self-service DID registration — no admin key needed.
+await zkident.registerDid(userAddress, didDocumentJson);
+
+// Real Groth16 verification: proves age >= 18 on-chain without revealing birth date.
+// proof/publicInputs come from circuits/gen_inputs.mjs + snarkjs — see circuits/README.md.
+const isOver18 = await zkident.verifyAgeProof(proof, publicInputs);
+```
+
+See [`sdk/README.md`](sdk/README.md) for the full API and [`circuits/README.md`](circuits/README.md) for how to generate a real proof for any of the three circuits.
+
+## Ecosystem
+
+Part of **stellar-zklab**'s Soroban Protocol 25 project suite, alongside:
+- [`soroban-yield-vault`](https://github.com/stellar-zklab/soroban-yield-vault) — real Blend Protocol V2 yield vault with Yearn V3 share math
+- [`stellar-zkstream`](https://github.com/stellar-zklab/stellar-zkstream) — privacy-preserving payment streaming; this repo's `zk_verifier` contract is reused from there unmodified
+
+All three share the same "real vs. not" documentation discipline and the same Protocol 25 BN254/testnet deployment conventions.
+
 ## 🚀 Quick Start
+
+**Prerequisites**: Rust with the `wasm32v1-none` target, Node.js 20+, and (only for regenerating circuits) `circom` + `snarkjs` — see [`circuits/README.md`](circuits/README.md).
+
 ```bash
+# Run the real contract test suite (12 tests for zk_verifier alone — see Current Status above)
 cargo test --all --features testutils
-cd frontend && npm run dev
+
+# Run the frontend against the real deployed contracts (connects Freighter, real did_registry calls)
+cd frontend && npm install && npm run dev
 ```
