@@ -3,13 +3,14 @@
   "deployed_at": "2026-09-03T03:27:53Z",
   "deployer": "GAUZ4T6UT7XMGOL6WYPWWSYPZQ7ZLILCAS2ROYCH5ILHHOWQYUGVRTAB",
   "contracts": {
-    "asp_registry": "CD5BJLK36ZHKLHRE4L3LUDEEM5SM2ME5XLALIIGTCZ6OTMXJSPLWR75C",
-    "credential_verifier": "CAHGQ3OH2MSJBVQ4DGDPBX7VPROCKVB2YA32QCLIPYX2766WZJPJCWTA",
+    "asp_registry": "CACMQJV7SRSRKQDBXJWORGYKVWMXL6LDGJZXGY6A3DYPV3RXFHF4AR52",
+    "credential_verifier": "CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF",
     "did_registry": "CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6",
-    "reputation_nft": "CC3LKAQ4LOXZYIWSQBGDO7GF747QMIOZFJQEUZP6DWZXZWZ2UNJMNJ27"
+    "reputation_nft": "CDA34SUCSQDOCCY5B6HJJH4CQ5PUDWII6CY3BDONGKT5E3KTEWZJ47GD"
   },
   "notes": {
-    "reputation_nft": "Redeployed 2026-09-03 after mint() was changed to require a real verified credential_type argument — CCP6BT...4Z5AT was the pre-fix instance and is stale.",
-    "asp_registry": "One real ASP registered 2026-09-03: the deployer address (GAUZ4T6U...) acting as its own demo attestation service, vouching for its own real 'kyc_tier_2' credential via a real 4-leaf Merkle tree. Root: c17e4274704d431b91f0698c84eff82693005c05250c6efab856733047d09d53. This is what the frontend's 'Verify Real Credential On-Chain' button checks against."
+    "reputation_nft": "Redeployed 2026-09-05T10:01:45Z after fixing mint() to check the caller is actually the stored admin — CC3LKAQ4LOXZYIWSQBGDO7GF747QMIOZFJQEUZP6DWZXZWZ2UNJMNJ27 was the pre-fix instance and is stale. Points at the new credential_verifier (CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF).",
+    "asp_registry": "Redeployed 2026-09-05T10:01:45Z after fixing register_asp() to check the caller is actually the stored admin, not just any address passing itself off as one — CD5BJLK36ZHKLHRE4L3LUDEEM5SM2ME5XLALIIGTCZ6OTMXJSPLWR75C was the pre-fix instance and is stale. Re-registered the same demo ASP credential with the same root: c17e4274704d431b91f0698c84eff82693005c05250c6efab856733047d09d53.",
+    "credential_verifier": "Redeployed 2026-09-05T10:01:45Z after adding a re-init guard to initialize() (previously callable twice) — CAHGQ3OH2MSJBVQ4DGDPBX7VPROCKVB2YA32QCLIPYX2766WZJPJCWTA was the pre-fix instance and is stale. Points at the new asp_registry (CACMQJV7SRSRKQDBXJWORGYKVWMXL6LDGJZXGY6A3DYPV3RXFHF4AR52)."
   }
 }
