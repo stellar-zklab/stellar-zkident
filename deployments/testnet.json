@@ -6,11 +6,15 @@
     "asp_registry": "CACMQJV7SRSRKQDBXJWORGYKVWMXL6LDGJZXGY6A3DYPV3RXFHF4AR52",
     "credential_verifier": "CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF",
     "did_registry": "CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6",
-    "reputation_nft": "CDA34SUCSQDOCCY5B6HJJH4CQ5PUDWII6CY3BDONGKT5E3KTEWZJ47GD"
+    "reputation_nft": "CDA34SUCSQDOCCY5B6HJJH4CQ5PUDWII6CY3BDONGKT5E3KTEWZJ47GD",
+    "age_proof_verifier": "CCILFFFLU6UKPXU3QD47IJULLGSPPFDS3PIUPV2MBOR5QA6OREI22NUV",
+    "kyc_tier_verifier": "CCLKJTSGJ6WJR76TKS4H4FWTH472WILJ7SGC4OWUYUAMCUGCK2E7NCYC",
+    "membership_verifier": "CCHJVP2UCG6KIOPLYIIEJ5KYESA4LGEP2QSF3JZNRFCWSK66RDIVOHTW"
   },
   "notes": {
     "reputation_nft": "Redeployed 2026-09-05T10:01:45Z after fixing mint() to check the caller is actually the stored admin — CC3LKAQ4LOXZYIWSQBGDO7GF747QMIOZFJQEUZP6DWZXZWZ2UNJMNJ27 was the pre-fix instance and is stale. Points at the new credential_verifier (CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF).",
     "asp_registry": "Redeployed 2026-09-05T10:01:45Z after fixing register_asp() to check the caller is actually the stored admin, not just any address passing itself off as one — CD5BJLK36ZHKLHRE4L3LUDEEM5SM2ME5XLALIIGTCZ6OTMXJSPLWR75C was the pre-fix instance and is stale. Re-registered the same demo ASP credential with the same root: c17e4274704d431b91f0698c84eff82693005c05250c6efab856733047d09d53.",
-    "credential_verifier": "Redeployed 2026-09-05T10:01:45Z after adding a re-init guard to initialize() (previously callable twice) — CAHGQ3OH2MSJBVQ4DGDPBX7VPROCKVB2YA32QCLIPYX2766WZJPJCWTA was the pre-fix instance and is stale. Points at the new asp_registry (CACMQJV7SRSRKQDBXJWORGYKVWMXL6LDGJZXGY6A3DYPV3RXFHF4AR52)."
+    "credential_verifier": "Redeployed 2026-09-05T10:01:45Z after adding a re-init guard to initialize() (previously callable twice) — CAHGQ3OH2MSJBVQ4DGDPBX7VPROCKVB2YA32QCLIPYX2766WZJPJCWTA was the pre-fix instance and is stale. Points at the new asp_registry (CACMQJV7SRSRKQDBXJWORGYKVWMXL6LDGJZXGY6A3DYPV3RXFHF4AR52).",
+    "zk_verifiers": "Deployed 2026-09-05T16:57:35Z. Three real Groth16 BN254 verifier instances, one per real Circom circuit (see circuits/README.md), each initialized with its own real verification key. This is separate from credential_verifier's classical Merkle-inclusion system — these verify actual zero-knowledge proofs."
   }
 }

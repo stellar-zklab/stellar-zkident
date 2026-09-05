@@ -23,7 +23,8 @@ Self-Sovereign `did:stellar:` Decentralized Identity, real Groth16 Zero-Knowledg
 
 ## Deployment
 
-All four contracts are live on Stellar testnet (deployed 2026-09-03, see
+All seven contracts are live on Stellar testnet (core four deployed/redeployed 2026-09-05,
+the three ZK verifiers deployed 2026-09-05 — see
 [`deployments/testnet.json`](deployments/testnet.json) — independently checkable on
 [stellar.expert](https://stellar.expert/explorer/testnet)):
 
@@ -33,11 +34,16 @@ All four contracts are live on Stellar testnet (deployed 2026-09-03, see
 | `credential_verifier` | `CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF` |
 | `did_registry` | `CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6` |
 | `reputation_nft` | `CDA34SUCSQDOCCY5B6HJJH4CQ5PUDWII6CY3BDONGKT5E3KTEWZJ47GD` |
+| `zk_verifier` (age_proof) | `CCILFFFLU6UKPXU3QD47IJULLGSPPFDS3PIUPV2MBOR5QA6OREI22NUV` |
+| `zk_verifier` (kyc_tier_proof) | `CCLKJTSGJ6WJR76TKS4H4FWTH472WILJ7SGC4OWUYUAMCUGCK2E7NCYC` |
+| `zk_verifier` (membership_proof) | `CCHJVP2UCG6KIOPLYIIEJ5KYESA4LGEP2QSF3JZNRFCWSK66RDIVOHTW` |
 
 `credential_verifier` is initialized with `asp_registry`'s real deployed address above, and
 `reputation_nft` with `credential_verifier`'s — these aren't independently deployed
-instances that merely coexist, they're actually wired to each other on-chain.
-`scripts/deploy.sh` reproduces this from scratch — see
+instances that merely coexist, they're actually wired to each other on-chain. Each
+`zk_verifier` instance is initialized with its own real Groth16 verification key from
+`circuits/build/` — three separate instances, not one contract juggling three keys.
+`scripts/deploy.sh` and `scripts/deploy_zk_verifiers.sh` reproduce this from scratch — see
 [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md).
 
 ## 🚀 Quick Start
