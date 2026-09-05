@@ -46,6 +46,8 @@ impl ReputationNFTContract {
         credential_type: String,
     ) -> u64 {
         admin.require_auth();
+        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        assert_eq!(admin, stored_admin, "caller is not the admin");
 
         let cv: Address = env
             .storage()

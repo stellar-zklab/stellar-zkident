@@ -26,6 +26,8 @@ impl ASPRegistryContract {
 
     pub fn register_asp(env: Env, admin: Address, asp: Address, merkle_root: BytesN<32>) {
         admin.require_auth();
+        let stored_admin: Address = env.storage().instance().get(&DataKey::Admin).expect("not initialized");
+        assert_eq!(admin, stored_admin, "caller is not the admin");
         let record = ASPRecord { asp: asp.clone(), merkle_root, active: true, registered_at: env.ledger().timestamp() };
         env.storage().persistent().set(&DataKey::ASP(asp.clone()), &record);
         env.events().publish((symbol_short!("asp"), symbol_short!("register")), asp);
