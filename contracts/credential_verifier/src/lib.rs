@@ -39,6 +39,9 @@ impl CredentialVerifierContract {
     /// never point verification at an attacker-controlled contract that would report back
     /// whatever root matches a fabricated proof.
     pub fn initialize(env: Env, admin: Address, asp_registry: Address) {
+        if env.storage().instance().has(&DataKey::Admin) {
+            panic!("already initialized");
+        }
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::AspRegistry, &asp_registry);
