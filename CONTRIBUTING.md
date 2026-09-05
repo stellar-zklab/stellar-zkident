@@ -2,7 +2,7 @@
 
 Welcome to **`stellar-zkident`**! We are building the **Zero-Knowledge Decentralized Identity (DID) and Soulbound Reputation Primitive** for the Stellar (Soroban) ecosystem.
 
-We welcome contributions from Rust developers, Noir ZK circuit engineers, W3C identity specialists, and frontend builders.
+We welcome contributions from Rust developers, Circom/snarkjs ZK circuit engineers, W3C identity specialists, and frontend builders.
 
 ---
 
@@ -10,8 +10,9 @@ We welcome contributions from Rust developers, Noir ZK circuit engineers, W3C id
 
 `stellar-zkident` establishes a privacy-first identity layer for Stellar:
 - Anchors self-sovereign DIDs (`did:stellar:<address>`) on-chain.
-- Verifies real-world credentials (Age, KYC tier, Residency, Employment, ASP Set Membership) via **Noir Zero-Knowledge Proofs**.
-- Mints non-transferable **Soulbound Reputation Tokens (SBTs)**.
+- Verifies age, KYC tier, and Merkle-tree membership claims via real **Groth16 zero-knowledge proofs**, without revealing the underlying private data.
+- Also verifies classical Merkle-inclusion credentials (a separate, non-ZK mechanism — see README) for ASP-attested claims.
+- Mints non-transferable **Soulbound Reputation Tokens (SBTs)**, gated on a real verified credential.
 - Enables external DeFi protocols to verify user compliance (`has_credential()`) in a single line of Rust without exposing user personal data.
 
 ---
@@ -22,15 +23,16 @@ We welcome contributions from Rust developers, Noir ZK circuit engineers, W3C id
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                     DEVELOPMENT ROADMAP PHASES                          │
 │                                                                         │
-│  Phase 1: Core Contracts & Noir Circuits (Scaffolded & Verified)        │
-│    ├── did_registry (W3C did:stellar method)                           │
-│    ├── credential_verifier & asp_registry                              │
-│    └── Noir circuits (age_proof, kyc_tier_proof, membership_proof)     │
+│  Phase 1: Core Contracts & Real ZK Circuits (Built & Tested)           │
+│    ├── did_registry (W3C did:stellar method)                          │
+│    ├── credential_verifier & asp_registry (classical Merkle proofs)   │
+│    ├── zk_verifier x3 (real Groth16 BN254 verifiers, one per circuit) │
+│    └── Circom circuits (age_proof, kyc_tier_proof, membership_proof)  │
 │                                                                         │
 │  Phase 2: Off-Chain Attestation & SDK (Active Contribution)            │
-│    ├── TypeScript SDK (@stellar-zklab/zkident-sdk)                     │
-│    ├── Ed25519 issuer off-chain attestation CLI tool                   │
-│    └── IPFS DID Document CID storage integration                       │
+│    ├── TypeScript SDK (@stellar-zklab/zkident-sdk) — real, tested     │
+│    ├── In-browser proof generation (snarkjs) for the SDK              │
+│    └── Off-chain attestation issuer tooling for ASPs                  │
 │                                                                         │
 │  Phase 3: Identity Dashboard & Wallet Sign-In (Upcoming)               │
 │    ├── React DID & Credential Manager dashboard                        │
@@ -39,7 +41,6 @@ We welcome contributions from Rust developers, Noir ZK circuit engineers, W3C id
 │                                                                         │
 │  Phase 4: Ecosystem Composability & Compliance (Future)                │
 │    ├── ASP Merkle root automatic sync daemon                           │
-│    ├── Fuzz testing for raw DID JSON-LD strings                        │
 │    └── Soulbound reputation tier lookup helpers                        │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -50,7 +51,7 @@ We welcome contributions from Rust developers, Noir ZK circuit engineers, W3C id
 
 ### Prerequisites
 - **Rust Toolchain**: `rustup target add wasm32v1-none`
-- **Nargo (Noir CLI)**: v0.30.0+ (`noirup`)
+- **Circom & snarkjs** (for circuit work only): `npm install -g snarkjs`, [circom 2.1.6+](https://docs.circom.io/getting-started/installation/)
 - **Stellar CLI**: v22.0.0+
 
 ### Build & Run Tests
@@ -60,13 +61,13 @@ We welcome contributions from Rust developers, Noir ZK circuit engineers, W3C id
 git clone https://github.com/stellar-zklab/stellar-zkident.git
 cd stellar-zkident
 
-# Run unit tests across all 4 contracts
+# Run unit tests across all 5 contracts (did_registry, credential_verifier,
+# reputation_nft, asp_registry, zk_verifier — 21 tests total)
 cargo test --all --features testutils
 
-# Compile Noir ZK circuits
-cd circuits/age_proof && nargo compile
-cd ../kyc_tier_proof && nargo compile
-cd ../membership_proof && nargo compile
+# Reproduce the real ZK circuits' trusted-setup pipeline (only needed if you're
+# changing a circuit — the resulting VKs/proofs are already committed under
+# circuits/build/): see circuits/README.md for the full, exact steps.
 ```
 
 ---
@@ -78,7 +79,7 @@ cd ../membership_proof && nargo compile
 | `feat:` | New feature or contract function | `feat(did): add batch_is_active query helper` |
 | `fix:` | Bug fix or logic patch | `fix(verifier): update credential expiry validation` |
 | `docs:` | Documentation updates | `docs(did): add W3C did:stellar specification` |
-| `circuit:` | Noir circuit changes | `circuit(kyc): add proof aggregation constraints` |
+| `circuit:` | Circom circuit changes | `circuit(kyc): add proof aggregation constraints` |
 
 ---
 
