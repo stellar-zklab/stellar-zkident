@@ -4,8 +4,11 @@
 ![License](https://img.shields.io/badge/License-Apache_2.0-green)
 [![CI](https://github.com/stellar-zklab/stellar-zkident/actions/workflows/ci.yml/badge.svg)](https://github.com/stellar-zklab/stellar-zkident/actions/workflows/ci.yml)
 ![DID](https://img.shields.io/badge/Standard-W3C_DID_v1.0-violet)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-stellar--zkident.vercel.app-black?style=flat&logo=vercel)](https://stellar-zkident.vercel.app/)
 
 Self-Sovereign `did:stellar:` Decentralized Identity, real Groth16 Zero-Knowledge Credentials, and Soulbound Reputation (SBT) Framework.
+
+**[🔗 Try the live demo](https://stellar-zkident.vercel.app/)** — wired to the real deployed testnet contracts listed below, not a mockup.
 
 ## Why this is real zero-knowledge, not a buzzword
 
@@ -130,8 +133,8 @@ See [`sdk/README.md`](sdk/README.md) for the full API and [`circuits/README.md`]
 ## Ecosystem
 
 Part of **stellar-zklab**'s Soroban Protocol 25 project suite, alongside:
-- [`soroban-yield-vault`](https://github.com/stellar-zklab/soroban-yield-vault) — real Blend Protocol V2 yield vault with Yearn V3 share math
-- [`stellar-zkstream`](https://github.com/stellar-zklab/stellar-zkstream) — privacy-preserving payment streaming; this repo's `zk_verifier` contract is reused from there unmodified
+- [`soroban-yield-vault`](https://github.com/stellar-zklab/soroban-yield-vault) — real Blend Protocol V2 yield vault with Yearn V3 share math ([live demo](https://soroban-yield-vault.vercel.app/))
+- [`stellar-zkstream`](https://github.com/stellar-zklab/stellar-zkstream) — privacy-preserving payment streaming; this repo's `zk_verifier` contract is reused from there unmodified ([live demo](https://stellar-zkstream.vercel.app/))
 
 All three share the same "real vs. not" documentation discipline and the same Protocol 25 BN254/testnet deployment conventions.
 
