@@ -2,7 +2,10 @@
 // here. See ../deployments/testnet.json for where these addresses come from and how to
 // verify them independently on stellar.expert.
 import { Client as ContractClient } from '@stellar/stellar-sdk/contract';
-import freighter from '@stellar/freighter-api';
+import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit/sdk';
+import { FreighterModule } from '@creit.tech/stellar-wallets-kit/modules/freighter';
+import { xBullModule } from '@creit.tech/stellar-wallets-kit/modules/xbull';
+import { Networks } from '@creit.tech/stellar-wallets-kit/types';
 
 export const NETWORK_PASSPHRASE = 'Test SDF Network ; September 2015';
 export const RPC_URL = 'https://soroban-testnet.stellar.org';
@@ -37,34 +40,38 @@ const DEMO_MERKLE_PROOF_HEX = [
 ];
 export const DEMO_LEAF_INDEX = 0;
 
-export class FreighterNotDetectedError extends Error {}
+// Scoped to just Freighter + xBull rather than the kit's full module list (which also
+// pulls in Ledger/Trezor hardware-wallet and WalletConnect support) — this is a testnet
+// demo, not a production wallet, so only the two lightest, most commonly available
+// options are wired in. init() is a one-time, module-level call since StellarWalletsKit's
+// methods are static.
+let walletKitReady = false;
+function ensureWalletKit(): void {
+  if (walletKitReady) return;
+  StellarWalletsKit.init({
+    modules: [new FreighterModule(), new xBullModule()],
+    network: Networks.TESTNET,
+  });
+  walletKitReady = true;
+}
 
+/** Opens the kit's real wallet-picker modal (Freighter or xBull), and returns the real
+ * connected address. The modal itself handles "wallet not installed" — there's no
+ * separate not-detected error to catch here the way the old Freighter-only code needed. */
 export async function connectWallet(): Promise<string> {
-  const { isConnected, error: connErr } = await freighter.isConnected();
-  if (connErr || !isConnected) {
-    throw new FreighterNotDetectedError(
-      'Freighter wallet extension not detected. Install it from freighter.app to use real wallet features.'
-    );
-  }
-  const { address, error } = await freighter.requestAccess();
-  if (error || !address) {
-    throw new Error(error?.message ?? 'Wallet access was not granted.');
-  }
-  const { network, error: netErr } = await freighter.getNetwork();
-  if (netErr) throw new Error(netErr.message ?? 'Could not read wallet network.');
-  if (network !== 'TESTNET') {
-    throw new Error(`Freighter is set to ${network}, but this app talks to Stellar testnet. Switch networks in Freighter.`);
-  }
+  ensureWalletKit();
+  const { address } = await StellarWalletsKit.authModal();
   return address;
 }
 
 async function getClient(contractId: string, publicKey?: string) {
+  ensureWalletKit();
   return ContractClient.from({
     contractId,
     networkPassphrase: NETWORK_PASSPHRASE,
     rpcUrl: RPC_URL,
     publicKey,
-    signTransaction: freighter.signTransaction,
+    signTransaction: StellarWalletsKit.signTransaction,
   });
 }
 
@@ -78,12 +85,12 @@ export interface DIDRecord {
 
 /** Real, live register_did call for whichever wallet is connected — fully self-service,
  * no admin key or precomputed fixture needed, unlike the credential-verification demo
- * below. Requires a connected wallet and a Freighter signature. */
+ * below. Requires a connected wallet's signature. */
 export async function registerRealDid(ownerPublicKey: string, document: string): Promise<string> {
   const client = await getClient(DID_REGISTRY_ID, ownerPublicKey);
   const tx = await (client as any).register_did(
     { owner: ownerPublicKey, document },
-    // Generous window for real human Freighter review time — did_registry's own calls
+    // Generous window for real human wallet review time — did_registry's own calls
     // have no timestamp arguments to get wrong, but the signed transaction ENVELOPE still
     // needs enough time to actually get signed. See stellar-zkstream's soroban.ts for the
     // measured clock-drift bug this guards against in general.
