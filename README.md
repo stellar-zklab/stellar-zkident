@@ -6,15 +6,27 @@
 ![DID](https://img.shields.io/badge/Standard-W3C_DID_v1.0-violet)
 [![Live Demo](https://img.shields.io/badge/Live_Demo-stellar--zkident.vercel.app-black?style=flat&logo=vercel)](https://stellar-zkident.vercel.app/)
 
-Self-Sovereign `did:stellar:` Decentralized Identity, real Groth16 Zero-Knowledge Credentials, and Soulbound Reputation (SBT) Framework.
+**Self-sovereign `did:stellar:` decentralized identity on Soroban** — real Groth16 zero-knowledge credentials (age, KYC tier, membership) that prove a claim on-chain without revealing the private data behind it, plus a soulbound reputation (SBT) framework gated on real verification.
 
-**[🔗 Try the live demo](https://stellar-zkident.vercel.app/)** — wired to the real deployed testnet contracts listed below, not a mockup.
+**[🔗 Try the live demo](https://stellar-zkident.vercel.app/)** — wired to the real deployed testnet contracts listed under [Deployment](#deployment), not a mockup.
+
+## Contents
+
+- [Why this is real zero-knowledge, not a buzzword](#why-this-is-real-zero-knowledge-not-a-buzzword)
+- [Architecture](#architecture)
+- [What's built](#whats-built)
+- [Deployment](#deployment)
+- [Usage](#usage)
+- [Quick start](#-quick-start)
+- [Ecosystem](#ecosystem)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Why this is real zero-knowledge, not a buzzword
 
 - **Genuine Groth16 proofs verified on-chain, not simulated.** Three deployed `zk_verifier` instances perform real BN254 pairing checks via Soroban Protocol 25's native `env.crypto().bn254()` host functions — proving age ≥ 18, KYC tier ≥ N, or Merkle-tree membership **without revealing the underlying private data**.
 - **A real trusted-setup pipeline, not hand-crafted bytes.** Every verification key comes from an actual circom → snarkjs Powers-of-Tau → phase 2 → contribution → export run — see [`circuits/README.md`](circuits/README.md) for the exact reproducible steps.
-- **A hard technical call made and documented, not glossed over.** The original circuits were written in Noir, whose default proving system needs a BN254+Grumpkin curve cycle Soroban doesn't support. Rather than ship something that couldn't actually verify on-chain, the circuits were rebuilt in Circom/Groth16 — see the Deployment section below for why that's a real, working tradeoff, not a downgrade.
+- **A hard technical call made and documented, not glossed over.** The original circuits were written in Noir, whose default proving system needs a BN254+Grumpkin curve cycle Soroban doesn't support. Rather than ship something that couldn't actually verify on-chain, the circuits were rebuilt in Circom/Groth16 — see [Deployment](#deployment) for why that's a real, working tradeoff, not a downgrade.
 - **Classical and zero-knowledge verification are kept honestly separate.** `credential_verifier`'s Merkle-inclusion check is explicitly labeled as *not* zero-knowledge (the leaf is derived from the caller's real address) — real ZK privacy lives specifically in `zk_verifier`, so the two capabilities are never conflated.
 
 ## Architecture
@@ -65,26 +77,55 @@ Real zero-knowledge path (separate from the above):
 +----------------------------+
 ```
 
-## Current Status — what's real vs. not
+## What's built
 
-**`contracts/did_registry` — real.** Full DID document CRUD: register, add verification keys, update, deactivate, resolve. No shortcuts.
+Status of each piece, so anyone reading knows exactly what's real, what's tested, and what's classical vs. genuinely zero-knowledge.
 
-**`contracts/reputation_nft` — real, and now actually gated by a verified credential.** `mint()` used to accept an admin's say-so alone — it stored `credential_verifier`'s address at `initialize()` but never called it, so reputation could be minted for anyone regardless of whether they'd ever verified anything. It now calls `credential_verifier.has_credential(subject, credential_type)` for real (via a raw `env.invoke_contract`, not a crate dependency — see `credential_verifier`'s own note on why) and rejects the mint if that comes back false. `get_reputation()` and a soulbound `transfer()` that correctly always reverts (non-transferable by design) are unchanged.
+<details open>
+<summary><strong><code>contracts/did_registry</code> — real</strong></summary>
 
-**`contracts/asp_registry` — real.** Stores a Merkle root per registered Attestation Service Provider, plus `get_merkle_root()` for other contracts to read it. Now actually consumed by `credential_verifier` — see below.
+Full DID document CRUD: register, add verification keys, update, deactivate, resolve. No shortcuts.
 
-**`contracts/credential_verifier` — real Merkle membership verification, not a ZK proof.** `verify_proof()` now performs genuine cryptographic verification: it computes a leaf as `sha256(b"zkident:credential-leaf:v1:" || strkey(user) || credential_type)`, walks a caller-supplied sibling path up to a root, and rejects unless that root matches the ASP's *currently registered* root — fetched directly from `asp_registry` (stored at `initialize()`, never taken as caller input, so a proof can't be checked against an attacker-controlled fake registry). This proves on-chain that `user` is one of the leaves a specific ASP committed to. It is **not** zero-knowledge: the leaf is derived from the caller's real address, so membership is not hidden. What changed is that `has_credential()` can no longer be made `true` by submitting an arbitrary string; it now requires a real path to the ASP's real root. Genuine zero-knowledge verification is a separate, real capability — see `contracts/zk_verifier` below.
+</details>
 
-**`contracts/zk_verifier` — real, genuine zero-knowledge verification, deployed three times over.** Three real Groth16 BN254 verifier instances (reusing `stellar-zkstream`'s already-proven verifier contract unmodified), one per real circuit in `circuits/`: proving age ≥ 18, KYC tier ≥ N, and Merkle-tree membership — each **without revealing the underlying private data** (birth date, actual tier, or which leaf/path). This is a real, complete Groth16 trusted-setup pipeline (circom → snarkjs powers-of-tau → phase 2 → contribution → export), not hand-crafted bytes — see `circuits/README.md`. 12 tests pass, including 3 that feed real generated proofs for these exact circuits through the real contract's `vrfy_prf()` and 2 that confirm a tampered public input is correctly rejected.
+<details open>
+<summary><strong><code>contracts/reputation_nft</code> — real, gated by a verified credential</strong></summary>
 
-**`circuits/` — real Circom circuits (rebuilt from this repo's original Noir source) that a deployed contract actually verifies.** Originally written in Noir, which defaults to the UltraHonk proving system — that needs a BN254+Grumpkin curve cycle Soroban has no native support for (there's an active, unfinished official proposal to build this; see `circuits/README.md`). Rebuilt in Circom/Groth16 instead, which only needs the BN254 pairing checks Soroban already supports natively — the same approach `stellar-zkstream` already proved works end to end.
+`mint()` used to accept an admin's say-so alone — it stored `credential_verifier`'s address at `initialize()` but never called it, so reputation could be minted for anyone regardless of whether they'd ever verified anything. It now calls `credential_verifier.has_credential(subject, credential_type)` for real (via a raw `env.invoke_contract`, not a crate dependency — see `credential_verifier`'s own note on why) and rejects the mint if that comes back false. `get_reputation()` and a soulbound `transfer()` that correctly always reverts (non-transferable by design) are unchanged.
+
+</details>
+
+<details open>
+<summary><strong><code>contracts/asp_registry</code> — real</strong></summary>
+
+Stores a Merkle root per registered Attestation Service Provider, plus `get_merkle_root()` for other contracts to read it. Actually consumed by `credential_verifier` — see below.
+
+</details>
+
+<details open>
+<summary><strong><code>contracts/credential_verifier</code> — real Merkle membership verification, not a ZK proof</strong></summary>
+
+`verify_proof()` performs genuine cryptographic verification: it computes a leaf as `sha256(b"zkident:credential-leaf:v1:" || strkey(user) || credential_type)`, walks a caller-supplied sibling path up to a root, and rejects unless that root matches the ASP's *currently registered* root — fetched directly from `asp_registry` (stored at `initialize()`, never taken as caller input, so a proof can't be checked against an attacker-controlled fake registry). This proves on-chain that `user` is one of the leaves a specific ASP committed to. It is **not** zero-knowledge: the leaf is derived from the caller's real address, so membership is not hidden. What matters is that `has_credential()` can no longer be made `true` by submitting an arbitrary string; it now requires a real path to the ASP's real root. Genuine zero-knowledge verification is a separate, real capability — see `contracts/zk_verifier` below.
+
+</details>
+
+<details open>
+<summary><strong><code>contracts/zk_verifier</code> — real, genuine zero-knowledge verification, deployed three times over</strong></summary>
+
+Three real Groth16 BN254 verifier instances (reusing `stellar-zkstream`'s already-proven verifier contract unmodified), one per real circuit in `circuits/`: proving age ≥ 18, KYC tier ≥ N, and Merkle-tree membership — each **without revealing the underlying private data** (birth date, actual tier, or which leaf/path). This is a real, complete Groth16 trusted-setup pipeline (circom → snarkjs powers-of-tau → phase 2 → contribution → export), not hand-crafted bytes — see [`circuits/README.md`](circuits/README.md). 12 tests pass, including 3 that feed real generated proofs for these exact circuits through the real contract's `vrfy_prf()` and 2 that confirm a tampered public input is correctly rejected.
+
+</details>
+
+<details open>
+<summary><strong><code>circuits/</code> — real Circom circuits, rebuilt from the original Noir source</strong></summary>
+
+Originally written in Noir, which defaults to the UltraHonk proving system — that needs a BN254+Grumpkin curve cycle Soroban has no native support for (there's an active, unfinished official proposal to build this; see [`circuits/README.md`](circuits/README.md)). Rebuilt in Circom/Groth16 instead, which only needs the BN254 pairing checks Soroban already supports natively — the same approach `stellar-zkstream` already proved works end to end.
+
+</details>
 
 ## Deployment
 
-All seven contracts are live on Stellar testnet (core four deployed/redeployed 2026-09-05,
-the three ZK verifiers deployed 2026-09-05 — see
-[`deployments/testnet.json`](deployments/testnet.json) — independently checkable on
-[stellar.expert](https://stellar.expert/explorer/testnet)):
+All seven contracts are live on Stellar testnet (core four deployed/redeployed 2026-09-05, the three ZK verifiers deployed 2026-09-05 — see [`deployments/testnet.json`](deployments/testnet.json) — independently checkable on [stellar.expert](https://stellar.expert/explorer/testnet)):
 
 | Contract | Address |
 |---|---|
@@ -96,13 +137,7 @@ the three ZK verifiers deployed 2026-09-05 — see
 | `zk_verifier` (kyc_tier_proof) | `CCLKJTSGJ6WJR76TKS4H4FWTH472WILJ7SGC4OWUYUAMCUGCK2E7NCYC` |
 | `zk_verifier` (membership_proof) | `CCHJVP2UCG6KIOPLYIIEJ5KYESA4LGEP2QSF3JZNRFCWSK66RDIVOHTW` |
 
-`credential_verifier` is initialized with `asp_registry`'s real deployed address above, and
-`reputation_nft` with `credential_verifier`'s — these aren't independently deployed
-instances that merely coexist, they're actually wired to each other on-chain. Each
-`zk_verifier` instance is initialized with its own real Groth16 verification key from
-`circuits/build/` — three separate instances, not one contract juggling three keys.
-`scripts/deploy.sh` and `scripts/deploy_zk_verifiers.sh` reproduce this from scratch — see
-[`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md).
+`credential_verifier` is initialized with `asp_registry`'s real deployed address above, and `reputation_nft` with `credential_verifier`'s — these aren't independently deployed instances that merely coexist, they're actually wired to each other on-chain. Each `zk_verifier` instance is initialized with its own real Groth16 verification key from `circuits/build/` — three separate instances, not one contract juggling three keys. `scripts/deploy.sh` and `scripts/deploy_zk_verifiers.sh` reproduce this from scratch — see [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md).
 
 ## Usage
 
@@ -130,6 +165,21 @@ const isOver18 = await zkident.verifyAgeProof(proof, publicInputs);
 
 See [`sdk/README.md`](sdk/README.md) for the full API and [`circuits/README.md`](circuits/README.md) for how to generate a real proof for any of the three circuits.
 
+## 🚀 Quick start
+
+**Prerequisites:**
+- Rust with the `wasm32v1-none` target
+- Node.js 20+
+- `circom` + `snarkjs` — only needed to regenerate circuits, see [`circuits/README.md`](circuits/README.md)
+
+```bash
+# Run the real contract test suite (12 tests for zk_verifier alone — see What's built above)
+cargo test --all --features testutils
+
+# Run the frontend against the real deployed contracts (connects Freighter, real did_registry calls)
+cd frontend && npm install && npm run dev
+```
+
 ## Ecosystem
 
 Part of **stellar-zklab**'s Soroban Protocol 25 project suite, alongside:
@@ -138,14 +188,10 @@ Part of **stellar-zklab**'s Soroban Protocol 25 project suite, alongside:
 
 All three share the same "real vs. not" documentation discipline and the same Protocol 25 BN254/testnet deployment conventions.
 
-## 🚀 Quick Start
+## Contributing
 
-**Prerequisites**: Rust with the `wasm32v1-none` target, Node.js 20+, and (only for regenerating circuits) `circom` + `snarkjs` — see [`circuits/README.md`](circuits/README.md).
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the phased roadmap covering contracts, circuits, SDK, and frontend work. Check the [issue tracker](https://github.com/stellar-zklab/stellar-zkident/issues) for known gaps before starting something new.
 
-```bash
-# Run the real contract test suite (12 tests for zk_verifier alone — see Current Status above)
-cargo test --all --features testutils
+## License
 
-# Run the frontend against the real deployed contracts (connects Freighter, real did_registry calls)
-cd frontend && npm install && npm run dev
-```
+Apache 2.0 — see [`LICENSE`](LICENSE).
