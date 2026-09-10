@@ -148,7 +148,24 @@ export const App: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0b0914', color: '#e0e0e0' }}>
       <div style={{ background: 'linear-gradient(135deg, #4338ca, #3730a3)', color: '#fff', padding: '0.65rem 1.5rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center' }}>
-        ✓ DID registry &amp; one pre-registered credential are wired to real deployed contracts. The Noir circuit provers below are still an honest mockup — see banner in soroban.ts / App.tsx.
+        ✓ DID registry &amp; one pre-registered credential are wired to real deployed contracts. The Noir circuit provers below are still an honest mockup — see banner in{' '}
+        <a
+          href="https://github.com/stellar-zklab/stellar-zkident/blob/main/frontend/src/soroban.ts"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#fff', textDecoration: 'underline' }}
+        >
+          soroban.ts
+        </a>{' '}
+        /{' '}
+        <a
+          href="https://github.com/stellar-zklab/stellar-zkident/blob/main/frontend/src/App.tsx"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: '#fff', textDecoration: 'underline' }}
+        >
+          App.tsx
+        </a>.
       </div>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
