@@ -139,6 +139,12 @@ All seven contracts are live on Stellar testnet (core four deployed/redeployed 2
 
 `credential_verifier` is initialized with `asp_registry`'s real deployed address above, and `reputation_nft` with `credential_verifier`'s — these aren't independently deployed instances that merely coexist, they're actually wired to each other on-chain. Each `zk_verifier` instance is initialized with its own real Groth16 verification key from `circuits/build/` — three separate instances, not one contract juggling three keys. `scripts/deploy.sh` and `scripts/deploy_zk_verifiers.sh` reproduce this from scratch — see [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md).
 
+**A real reputation score is minted on this deployment (2026-09-10).** Subject `GAUZ4T6UT7XMGOL6WYPWWSYPZQ7ZLILCAS2ROYCH5ILHHOWQYUGVRTAB` (the deployer, acting as its own demo identity) holds a real, on-chain `kyc_tier_2` credential record on `credential_verifier` and a real minted reputation NFT (token #0, score 72) on `reputation_nft` — query either yourself:
+```bash
+stellar contract invoke --id CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF --source deployer --network testnet -- has_credential --user GAUZ4T6UT7XMGOL6WYPWWSYPZQ7ZLILCAS2ROYCH5ILHHOWQYUGVRTAB --credential_type kyc_tier_2
+stellar contract invoke --id CDA34SUCSQDOCCY5B6HJJH4CQ5PUDWII6CY3BDONGKT5E3KTEWZJ47GD --source deployer --network testnet -- get_reputation --subject GAUZ4T6UT7XMGOL6WYPWWSYPZQ7ZLILCAS2ROYCH5ILHHOWQYUGVRTAB
+```
+
 ## Usage
 
 ```typescript
@@ -164,6 +170,8 @@ const isOver18 = await zkident.verifyAgeProof(proof, publicInputs);
 ```
 
 See [`sdk/README.md`](sdk/README.md) for the full API and [`circuits/README.md`](circuits/README.md) for how to generate a real proof for any of the three circuits.
+
+**Reputation score card (added 2026-09-10).** The [live demo](https://stellar-zkident.vercel.app/) now shows a minimalist card — address, one bold score number, mint date — reading `reputation_nft`'s real `get_reputation`, modeled on Human Passport's single-score-card pattern rather than a raw JSON dump. No wallet needed to view it; enter any address to check. The demo subject's score wasn't real before this: getting a non-empty card required actually exercising the full real pipeline for the first time — a real `verify_proof` call (persisting a genuine credential record for `kyc_tier_2`), then a real `mint()` gated on that record via `credential_verifier.has_credential()` — not a fixture inserted directly into storage. See [Deployment](#deployment) below.
 
 ## 🚀 Quick start
 

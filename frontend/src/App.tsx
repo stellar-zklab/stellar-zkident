@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './index.css';
 import {
   connectWallet,
   registerRealDid,
   resolveRealDid,
   verifyRealCredentialOnChain,
+  getRealReputation,
   DID_REGISTRY_ID,
   CREDENTIAL_VERIFIER_ID,
   DEMO_CREDENTIAL_SUBJECT,
   DEMO_CREDENTIAL_TYPE,
+  DEMO_REPUTATION_SUBJECT,
   DIDRecord,
+  ReputationData,
 } from './soroban';
 
 // This UI is wired to REAL, deployed Stellar testnet contracts for two things — DID
@@ -38,6 +41,10 @@ export const App: React.FC = () => {
   const [resolvedDid, setResolvedDid] = useState<DIDRecord | null | undefined>(undefined);
   const [verifyingCredential, setVerifyingCredential] = useState(false);
 
+  const [reputationSubject, setReputationSubject] = useState(DEMO_REPUTATION_SUBJECT);
+  const [reputation, setReputation] = useState<ReputationData | null | undefined>(undefined);
+  const [reputationLoading, setReputationLoading] = useState(false);
+
   const [logs, setLogs] = useState<string[]>([
     `[REAL] This app talks to real deployed contracts on Stellar testnet — did_registry: ${DID_REGISTRY_ID}`,
   ]);
@@ -50,12 +57,35 @@ export const App: React.FC = () => {
     { id: 'merkle', name: 'ASP Merkle Membership', circuit: 'membership_proof.nr', status: 'Unverified' }
   ]);
 
+  // Real, live read from reputation_nft — public state, no wallet needed. Loaded on mount
+  // for the demo subject (a real minted score, not a fixture — see soroban.ts), and
+  // re-run for whichever address is in the input below.
+  const loadReputation = async (subject: string) => {
+    setReputationLoading(true);
+    try {
+      const data = await getRealReputation(subject);
+      setReputation(data);
+    } catch (err: any) {
+      appendLog(`[REAL] get_reputation failed: ${err.message ?? err}`);
+      setReputation(null);
+    } finally {
+      setReputationLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReputation(DEMO_REPUTATION_SUBJECT);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleConnect = async () => {
     setWalletError(null);
     try {
       const address = await connectWallet();
       setWalletAddress(address);
       appendLog(`[REAL] Connected real wallet: ${address.substring(0, 8)}...`);
+      setReputationSubject(address);
+      await loadReputation(address);
     } catch (err: any) {
       setWalletError(err.message ?? String(err));
       appendLog(`[REAL] Wallet connection failed: ${err.message ?? err}`);
@@ -143,6 +173,48 @@ export const App: React.FC = () => {
             {walletError}
           </div>
         )}
+
+        {/* Minimalist reputation score card, modeled on Human Passport's single-card
+            pattern: address, one big bold number, one label — not a raw JSON dump. */}
+        <section style={{ background: '#131022', padding: '2rem', borderRadius: '10px', border: '1px solid #231d3d', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', textAlign: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#64748b', fontFamily: 'monospace' }}>
+            {reputationSubject.substring(0, 6)}...{reputationSubject.substring(reputationSubject.length - 4)}
+          </div>
+
+          {reputationLoading ? (
+            <div style={{ fontSize: '0.85rem', color: '#64748b', padding: '1rem 0' }}>Reading real on-chain reputation...</div>
+          ) : reputation ? (
+            <>
+              <div style={{ fontSize: '3rem', fontWeight: 800, color: '#a78bfa', lineHeight: 1 }}>{reputation.score.toString()}</div>
+              <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>Soulbound Reputation Score</div>
+              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.5rem' }}>
+                Token #{reputation.token_id.toString()} &middot; minted {new Date(Number(reputation.minted_at) * 1000).toLocaleDateString()}
+              </div>
+            </>
+          ) : reputation === null ? (
+            <>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#64748b' }}>—</div>
+              <div style={{ fontSize: '0.85rem', color: '#94a3b8' }}>No reputation score minted yet for this address.</div>
+            </>
+          ) : null}
+
+          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', width: '100%', maxWidth: '420px' }}>
+            <input
+              type="text"
+              value={reputationSubject}
+              onChange={(e) => setReputationSubject(e.target.value)}
+              placeholder="G... address to check"
+              style={{ flex: 1, padding: '0.6rem 0.85rem', background: '#08060f', border: '1px solid #231d3d', color: '#f8fafc', borderRadius: '6px', fontSize: '0.8rem', fontFamily: 'monospace', outline: 'none' }}
+            />
+            <button
+              onClick={() => loadReputation(reputationSubject)}
+              disabled={reputationLoading || !reputationSubject}
+              style={{ padding: '0.6rem 1rem', background: '#1c1733', color: '#a78bfa', border: '1px solid #312952', borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}
+            >
+              Check
+            </button>
+          </div>
+        </section>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
 
