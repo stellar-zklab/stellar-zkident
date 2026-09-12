@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './index.css';
+import { Portfolio } from './Portfolio';
 import {
   connectWallet,
   registerRealDid,
@@ -36,6 +37,7 @@ interface CredentialItem {
 }
 
 export const App: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'identity' | 'portfolio'>('identity');
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
   const [provingId, setProvingId] = useState<string | null>(null);
@@ -220,6 +222,27 @@ export const App: React.FC = () => {
             <span style={{ fontSize: '0.75rem', background: 'rgba(67, 56, 202, 0.2)', color: '#a5b4fc', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid rgba(67, 56, 202, 0.4)', fontWeight: 600 }}>
               Testnet — Real Contracts
             </span>
+            <nav style={{ display: 'flex', gap: '0.25rem', background: '#08060f', padding: '0.25rem', borderRadius: '8px' }}>
+              {(['identity', 'portfolio'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    padding: '0.4rem 0.9rem',
+                    background: activeTab === tab ? '#4338ca' : 'transparent',
+                    color: activeTab === tab ? '#fff' : '#94a3b8',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.8rem',
+                    textTransform: 'capitalize',
+                  }}
+                >
+                  {tab}
+                </button>
+              ))}
+            </nav>
           </div>
 
           <button
@@ -236,6 +259,10 @@ export const App: React.FC = () => {
           </div>
         )}
 
+        {activeTab === 'portfolio' && <Portfolio initialAddress={walletAddress ?? undefined} />}
+
+        {activeTab === 'identity' && (
+        <>
         {/* Minimalist reputation score card, modeled on Human Passport's single-card
             pattern: address, one big bold number, one label — not a raw JSON dump. */}
         <section style={{ background: '#131022', padding: '2rem', borderRadius: '10px', border: '1px solid #231d3d', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', textAlign: 'center' }}>
@@ -402,6 +429,8 @@ export const App: React.FC = () => {
           </section>
 
         </div>
+        </>
+        )}
 
       </div>
     </div>

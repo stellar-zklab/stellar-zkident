@@ -175,3 +175,92 @@ export async function claimFromRealFaucet(userPublicKey: string): Promise<bigint
   const sent = await tx.signAndSend();
   return sent.result as bigint;
 }
+
+// --- Portfolio: real cross-repo reads --------------------------------------------------
+// These contracts are deployed and maintained by OTHER repos in this ecosystem, not this
+// one — stellar-zkstream and soroban-yield-vault (same org), soroban-gasless-contracts
+// (a different org). Source of truth for these addresses is each repo's own
+// deployments/testnet.json; if either contract is ever redeployed there, these need
+// updating too, or this page will silently read a stale, possibly-abandoned instance
+// instead of erroring. Verified current as of 2026-09-12 against both repos' own records.
+export const STREAM_CONTRACT_ID = 'CACRWU5VCHIGBMSJZMWDXE3L6UJNJIQ7O4FH32ER3M77AO3Z23562MPH'; // stellar-zkstream
+export const VAULT_CONTRACT_ID = 'CAQ6YR3XKGS774M7ERT5DTGMMPFYZ4WLAIMOPCUBGAJLQKPLFUG6AETK'; // soroban-yield-vault
+
+export interface StreamData {
+  sender: string;
+  recipient: string;
+  token: string;
+  total_amount: bigint;
+  withdrawn_amount: bigint;
+  start_time: bigint;
+  cliff_time: bigint;
+  end_time: bigint;
+  active: boolean;
+  cancelable: boolean;
+}
+
+export interface StreamWithClaimable extends StreamData {
+  id: bigint;
+  claimable: bigint;
+}
+
+/** Real reads against stellar-zkstream's deployed `stream` contract — a different repo in
+ * this ecosystem. Finds every stream `address` is a party to (as sender or recipient) via
+ * the contract's own real address index (get_streams_by_sender/get_streams_by_recipient —
+ * not a guess or a fixture), then reads each one's full data and current claimable amount.
+ * No wallet needed; all of this is public on-chain state. */
+export async function getRealStreamsForAddress(address: string): Promise<StreamWithClaimable[]> {
+  const client = await getClient(STREAM_CONTRACT_ID);
+  const [sentTx, receivedTx] = await Promise.all([
+    (client as any).get_streams_by_sender({ sender: address }),
+    (client as any).get_streams_by_recipient({ recipient: address }),
+  ]);
+  const sentIds = sentTx.result as bigint[];
+  const receivedIds = receivedTx.result as bigint[];
+  const ids = Array.from(new Set([...sentIds, ...receivedIds].map((id) => id.toString()))).map((s) => BigInt(s));
+
+  return Promise.all(
+    ids.map(async (id) => {
+      const [streamTx, claimableTx] = await Promise.all([
+        (client as any).get_stream({ stream_id: id }),
+        (client as any).claimable_amount({ stream_id: id }),
+      ]);
+      return { ...(streamTx.result as StreamData), id, claimable: claimableTx.result as bigint };
+    })
+  );
+}
+
+export interface VaultPosition {
+  shares: bigint;
+  assetValue: bigint;
+}
+
+/** Real reads against soroban-yield-vault's deployed `vault` contract — a different repo.
+ * balance_of returns a real share balance; convert_to_assets translates that into real
+ * underlying-asset value at the vault's current real share price (not a fixed 1:1 guess).
+ * No wallet needed. */
+export async function getRealVaultPosition(address: string): Promise<VaultPosition> {
+  const client = await getClient(VAULT_CONTRACT_ID);
+  const sharesTx = await (client as any).balance_of({ user: address });
+  const shares = sharesTx.result as bigint;
+  if (shares === 0n) return { shares: 0n, assetValue: 0n };
+  const assetsTx = await (client as any).convert_to_assets({ shares });
+  return { shares, assetValue: assetsTx.result as bigint };
+}
+
+export interface WalletDetails {
+  owner: string;
+  recoverySigner: string | null;
+}
+
+/** Real reads against a soroban-gasless-contracts `account-abstraction-wallet` instance —
+ * cross-ORG (stellar-gasless-net), not just cross-repo. Unlike the reads above, there is no
+ * on-chain registry mapping an owner address to the wallet contract IDs they've deployed —
+ * that index simply doesn't exist anywhere in this ecosystem yet — so this needs the
+ * wallet's own contract ID supplied directly, not discovered from an owner address alone. */
+export async function getRealWalletDetails(walletContractId: string): Promise<WalletDetails> {
+  const client = await getClient(walletContractId);
+  const ownerTx = await (client as any).get_owner();
+  const recoveryTx = await (client as any).get_recovery_signer();
+  return { owner: ownerTx.result as string, recoverySigner: (recoveryTx.result as string | null) ?? null };
+}
