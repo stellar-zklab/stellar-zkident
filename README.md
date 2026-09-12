@@ -117,6 +117,13 @@ Three real Groth16 BN254 verifier instances (reusing `stellar-zkstream`'s alread
 </details>
 
 <details open>
+<summary><strong><code>contracts/sybil_resistant_faucet</code> — real, reusable Sybil-resistance primitive</strong></summary>
+
+The first real *external consumer* of `credential_verifier` — not another first-party demo of it. Pays a fixed amount of a real token to an address, at most once, but only if that address genuinely holds a verified credential — checked live via the exact same cross-contract `has_credential()` call `reputation_nft::mint()` already uses, not assumed or trusted from caller input. This is the standard fix for the "bots drain a giveaway with infinite addresses" problem faucets, airdrops, and sponsored-transaction budgets all face, and it's deliberately written as a standalone, general-purpose contract rather than baked into any one product: any Soroban project can point this same pattern at their own (or this) `credential_verifier` instance and get Sybil resistance without writing any proof logic themselves. 3 tests pass, covering a real successful payout, a real rejection of an unverified address, and a real rejection of a second claim from an already-paid address — see [Deployment](#deployment) for the same three outcomes exercised live on testnet, not just in the test suite.
+
+</details>
+
+<details open>
 <summary><strong><code>circuits/</code> — real Circom circuits, rebuilt from the original Noir source</strong></summary>
 
 Originally written in Noir, which defaults to the UltraHonk proving system — that needs a BN254+Grumpkin curve cycle Soroban has no native support for (there's an active, unfinished official proposal to build this; see [`circuits/README.md`](circuits/README.md)). Rebuilt in Circom/Groth16 instead, which only needs the BN254 pairing checks Soroban already supports natively — the same approach `stellar-zkstream` already proved works end to end.
@@ -136,6 +143,7 @@ All seven contracts are live on Stellar testnet (core four deployed/redeployed 2
 | `zk_verifier` (age_proof) | `CCILFFFLU6UKPXU3QD47IJULLGSPPFDS3PIUPV2MBOR5QA6OREI22NUV` |
 | `zk_verifier` (kyc_tier_proof) | `CCLKJTSGJ6WJR76TKS4H4FWTH472WILJ7SGC4OWUYUAMCUGCK2E7NCYC` |
 | `zk_verifier` (membership_proof) | `CCHJVP2UCG6KIOPLYIIEJ5KYESA4LGEP2QSF3JZNRFCWSK66RDIVOHTW` |
+| `sybil_resistant_faucet` | `CBNQ6BHR45SV5JMSKQTLIULDZFOR3DPAD4VIXGZSROVSLXXTKXIUM524` |
 
 `credential_verifier` is initialized with `asp_registry`'s real deployed address above, and `reputation_nft` with `credential_verifier`'s — these aren't independently deployed instances that merely coexist, they're actually wired to each other on-chain. Each `zk_verifier` instance is initialized with its own real Groth16 verification key from `circuits/build/` — three separate instances, not one contract juggling three keys. `scripts/deploy.sh` and `scripts/deploy_zk_verifiers.sh` reproduce this from scratch — see [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md).
 
@@ -143,6 +151,16 @@ All seven contracts are live on Stellar testnet (core four deployed/redeployed 2
 ```bash
 stellar contract invoke --id CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF --source deployer --network testnet -- has_credential --user GAUZ4T6UT7XMGOL6WYPWWSYPZQ7ZLILCAS2ROYCH5ILHHOWQYUGVRTAB --credential_type kyc_tier_2
 stellar contract invoke --id CDA34SUCSQDOCCY5B6HJJH4CQ5PUDWII6CY3BDONGKT5E3KTEWZJ47GD --source deployer --network testnet -- get_reputation --subject GAUZ4T6UT7XMGOL6WYPWWSYPZQ7ZLILCAS2ROYCH5ILHHOWQYUGVRTAB
+```
+
+**`sybil_resistant_faucet` had all three of its real code paths exercised live on this deployment (2026-09-12), not just in the test suite.** Funded with 50,000,000 real testnet stroops from the deployer, then:
+
+1. `claim()` from the deployer (the same subject with the real verified `kyc_tier_2` credential above) **succeeded** — a real 5,000,000-stroop native XLM transfer ([tx `843763ed...`](https://stellar.expert/explorer/testnet/tx/843763ed1448a6fc08e834d016729def77821dfc6ea52a1dcfd3ae5d23dc3219)).
+2. `claim()` from a freshly generated address that has never verified anything **genuinely reverted on-chain** — the diagnostic log shows the real cross-contract `has_credential` call returning `false` before the trap, not a hardcoded rejection.
+3. A second `claim()` from the deployer **also genuinely reverted** — the already-claimed check.
+
+```bash
+stellar contract invoke --id CBNQ6BHR45SV5JMSKQTLIULDZFOR3DPAD4VIXGZSROVSLXXTKXIUM524 --source deployer --network testnet -- has_claimed --user GAUZ4T6UT7XMGOL6WYPWWSYPZQ7ZLILCAS2ROYCH5ILHHOWQYUGVRTAB
 ```
 
 ## Usage
@@ -170,6 +188,8 @@ const isOver18 = await zkident.verifyAgeProof(proof, publicInputs);
 ```
 
 See [`sdk/README.md`](sdk/README.md) for the full API and [`circuits/README.md`](circuits/README.md) for how to generate a real proof for any of the three circuits.
+
+**Sybil-Resistant Faucet panel (added 2026-09-12).** The [live demo](https://stellar-zkident.vercel.app/) now has a "Sybil-Resistant Faucet" claim button next to credential verification. It's honestly scoped the same way credential verification is: only the pre-registered demo subject holds a real verified credential right now, so claiming with any other connected wallet will genuinely revert on-chain with "claim requires a verified credential" — that's the gate working correctly, not a bug. See [Deployment](#deployment) for the real payout/rejection/already-claimed outcomes this was exercised against.
 
 **Reputation score card (added 2026-09-10).** The [live demo](https://stellar-zkident.vercel.app/) now shows a minimalist card — address, one bold score number, mint date — reading `reputation_nft`'s real `get_reputation`, modeled on Human Passport's single-score-card pattern rather than a raw JSON dump. No wallet needed to view it; enter any address to check. The demo subject's score wasn't real before this: getting a non-empty card required actually exercising the full real pipeline for the first time — a real `verify_proof` call (persisting a genuine credential record for `kyc_tier_2`), then a real `mint()` gated on that record via `credential_verifier.has_credential()` — not a fixture inserted directly into storage. See [Deployment](#deployment) below.
 

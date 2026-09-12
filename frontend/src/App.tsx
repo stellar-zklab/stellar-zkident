@@ -6,6 +6,9 @@ import {
   resolveRealDid,
   verifyRealCredentialOnChain,
   getRealReputation,
+  hasClaimedFromFaucet,
+  getFaucetClaimAmount,
+  claimFromRealFaucet,
   DID_REGISTRY_ID,
   CREDENTIAL_VERIFIER_ID,
   DEMO_CREDENTIAL_SUBJECT,
@@ -45,6 +48,10 @@ export const App: React.FC = () => {
   const [reputation, setReputation] = useState<ReputationData | null | undefined>(undefined);
   const [reputationLoading, setReputationLoading] = useState(false);
 
+  const [faucetClaimAmount, setFaucetClaimAmount] = useState<bigint | null>(null);
+  const [faucetHasClaimed, setFaucetHasClaimed] = useState<boolean | null>(null);
+  const [faucetClaiming, setFaucetClaiming] = useState(false);
+
   const [logs, setLogs] = useState<string[]>([
     `[REAL] This app talks to real deployed contracts on Stellar testnet — did_registry: ${DID_REGISTRY_ID}`,
   ]);
@@ -73,8 +80,30 @@ export const App: React.FC = () => {
     }
   };
 
+  // Real, live read from sybil_resistant_faucet — public state, no wallet needed for the
+  // claim amount. Loaded on mount so the card always shows a real number, not a placeholder.
+  const loadFaucetClaimAmount = async () => {
+    try {
+      const amount = await getFaucetClaimAmount();
+      setFaucetClaimAmount(amount);
+    } catch (err: any) {
+      appendLog(`[REAL] get_claim_amount failed: ${err.message ?? err}`);
+    }
+  };
+
+  const loadFaucetHasClaimed = async (address: string) => {
+    try {
+      const claimed = await hasClaimedFromFaucet(address);
+      setFaucetHasClaimed(claimed);
+    } catch (err: any) {
+      appendLog(`[REAL] has_claimed failed: ${err.message ?? err}`);
+      setFaucetHasClaimed(null);
+    }
+  };
+
   useEffect(() => {
     loadReputation(DEMO_REPUTATION_SUBJECT);
+    loadFaucetClaimAmount();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -86,9 +115,25 @@ export const App: React.FC = () => {
       appendLog(`[REAL] Connected real wallet: ${address.substring(0, 8)}...`);
       setReputationSubject(address);
       await loadReputation(address);
+      await loadFaucetHasClaimed(address);
     } catch (err: any) {
       setWalletError(err.message ?? String(err));
       appendLog(`[REAL] Wallet connection failed: ${err.message ?? err}`);
+    }
+  };
+
+  const handleClaim = async () => {
+    if (!walletAddress) return;
+    setFaucetClaiming(true);
+    appendLog(`[REAL] Calling claim() on the real deployed sybil_resistant_faucet — this needs your wallet signature and will genuinely revert on-chain unless this address holds a verified "${DEMO_CREDENTIAL_TYPE}" credential.`);
+    try {
+      const paid = await claimFromRealFaucet(walletAddress);
+      appendLog(`[REAL] Claim succeeded. Faucet paid out ${paid.toString()} stroops of real testnet XLM to this address — a real cross-contract has_credential() check against credential_verifier passed.`);
+      setFaucetHasClaimed(true);
+    } catch (err: any) {
+      appendLog(`[REAL] claim() reverted on-chain: ${err.message ?? err}. Expected unless this wallet is the pre-registered demo credential subject (${DEMO_CREDENTIAL_SUBJECT.substring(0, 8)}...) — see the note in soroban.ts.`);
+    } finally {
+      setFaucetClaiming(false);
     }
   };
 
@@ -288,6 +333,28 @@ export const App: React.FC = () => {
               <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '0.5rem 0 0 0', fontFamily: 'monospace' }}>
                 subject: {DEMO_CREDENTIAL_SUBJECT.substring(0, 12)}...
               </p>
+            </div>
+
+            <div style={{ borderTop: '1px solid #231d3d', paddingTop: '1rem', marginTop: '0.5rem' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 600, margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Sybil-Resistant Faucet</h3>
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 0.75rem 0' }}>
+                Pays{' '}
+                {faucetClaimAmount !== null ? `${(Number(faucetClaimAmount) / 10_000_000).toString()} XLM` : '...'}
+                {' '}to your connected wallet, once, but only if it genuinely holds a verified credential — checked live via a real cross-contract call to credential_verifier, the same gate reputation_nft's mint already uses. Only the pre-registered demo subject holds one right now, so claiming from any other wallet will honestly revert on-chain.
+              </p>
+              <button
+                onClick={handleClaim}
+                disabled={!walletAddress || faucetClaiming || faucetHasClaimed === true}
+                style={{ width: '100%', padding: '0.75rem', background: faucetHasClaimed ? '#312952' : '#1c1733', color: '#a78bfa', border: '1px solid #312952', borderRadius: '6px', cursor: (!walletAddress || faucetClaiming || faucetHasClaimed) ? 'default' : 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+              >
+                {!walletAddress
+                  ? 'Connect wallet first'
+                  : faucetClaiming
+                  ? 'Claiming on-chain...'
+                  : faucetHasClaimed
+                  ? 'Already claimed from this address'
+                  : 'Claim (Requires Verified Credential)'}
+              </button>
             </div>
           </section>
 

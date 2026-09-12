@@ -6,6 +6,7 @@ members = [
     "contracts/reputation_nft",
     "contracts/asp_registry",
     "contracts/zk_verifier",
+    "contracts/sybil_resistant_faucet",
 ]
 
 [workspace.dependencies]

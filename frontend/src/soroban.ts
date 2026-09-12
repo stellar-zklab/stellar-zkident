@@ -13,6 +13,9 @@ export const RPC_URL = 'https://soroban-testnet.stellar.org';
 export const DID_REGISTRY_ID = 'CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6';
 export const CREDENTIAL_VERIFIER_ID = 'CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF';
 export const REPUTATION_NFT_ID = 'CDA34SUCSQDOCCY5B6HJJH4CQ5PUDWII6CY3BDONGKT5E3KTEWZJ47GD';
+// Deployed 2026-09-12 via scripts/deploy_sybil_resistant_faucet.sh — see deployments/testnet.json
+// for the real claim()/reject/already-claimed exercises run against this exact instance.
+export const SYBIL_RESISTANT_FAUCET_ID = 'CBNQ6BHR45SV5JMSKQTLIULDZFOR3DPAD4VIXGZSROVSLXXTKXIUM524';
 
 // The demo subject really holds a minted reputation score — 2026-09-10, real verify_proof +
 // mint calls, not a fixture. See deployments/testnet.json's notes.
@@ -144,4 +147,31 @@ export async function getRealReputation(subject: string): Promise<ReputationData
   const client = await getClient(REPUTATION_NFT_ID);
   const tx = await (client as any).get_reputation({ subject });
   return (tx.result as ReputationData | null) ?? null;
+}
+
+/** Read-only: whether `user` has already claimed from the real deployed
+ * sybil_resistant_faucet. No wallet needed. */
+export async function hasClaimedFromFaucet(user: string): Promise<boolean> {
+  const client = await getClient(SYBIL_RESISTANT_FAUCET_ID);
+  const tx = await (client as any).has_claimed({ user });
+  return tx.result as boolean;
+}
+
+export async function getFaucetClaimAmount(): Promise<bigint> {
+  const client = await getClient(SYBIL_RESISTANT_FAUCET_ID);
+  const tx = await (client as any).get_claim_amount();
+  return tx.result as bigint;
+}
+
+/** Real, live claim() call against sybil_resistant_faucet, signed by whichever wallet is
+ * connected. The contract gates this on a real cross-contract has_credential() check against
+ * credential_verifier — only DEMO_CREDENTIAL_SUBJECT actually holds a verified credential
+ * right now (see the note on DEMO_CREDENTIAL_SUBJECT above), so claiming with any other
+ * connected wallet will genuinely revert on-chain with "claim requires a verified
+ * credential" — that's the gate working correctly, not a bug. */
+export async function claimFromRealFaucet(userPublicKey: string): Promise<bigint> {
+  const client = await getClient(SYBIL_RESISTANT_FAUCET_ID, userPublicKey);
+  const tx = await (client as any).claim({ user: userPublicKey }, { timeoutInSeconds: 1800 });
+  const sent = await tx.signAndSend();
+  return sent.result as bigint;
 }
