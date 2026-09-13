@@ -75,7 +75,7 @@ export const App: React.FC = () => {
       const data = await getRealReputation(subject);
       setReputation(data);
     } catch (err: any) {
-      appendLog(`[REAL] get_reputation failed: ${err.message ?? err}`);
+      appendLog(`[REAL] Reputation lookup failed: ${err.message ?? err}`);
       setReputation(null);
     } finally {
       setReputationLoading(false);
@@ -89,7 +89,7 @@ export const App: React.FC = () => {
       const amount = await getFaucetClaimAmount();
       setFaucetClaimAmount(amount);
     } catch (err: any) {
-      appendLog(`[REAL] get_claim_amount failed: ${err.message ?? err}`);
+      appendLog(`[REAL] Claim amount lookup failed: ${err.message ?? err}`);
     }
   };
 
@@ -98,7 +98,7 @@ export const App: React.FC = () => {
       const claimed = await hasClaimedFromFaucet(address);
       setFaucetHasClaimed(claimed);
     } catch (err: any) {
-      appendLog(`[REAL] has_claimed failed: ${err.message ?? err}`);
+      appendLog(`[REAL] Claim-status lookup failed: ${err.message ?? err}`);
       setFaucetHasClaimed(null);
     }
   };
@@ -127,13 +127,13 @@ export const App: React.FC = () => {
   const handleClaim = async () => {
     if (!walletAddress) return;
     setFaucetClaiming(true);
-    appendLog(`[REAL] Calling claim() on the real deployed sybil_resistant_faucet — this needs your wallet signature and will genuinely revert on-chain unless this address holds a verified "${DEMO_CREDENTIAL_TYPE}" credential.`);
+    appendLog(`[REAL] Calling the real deployed faucet — this needs your wallet signature and will genuinely revert on-chain unless this address holds a verified "${DEMO_CREDENTIAL_TYPE}" credential.`);
     try {
       const paid = await claimFromRealFaucet(walletAddress);
-      appendLog(`[REAL] Claim succeeded. Faucet paid out ${paid.toString()} stroops of real testnet XLM to this address — a real cross-contract has_credential() check against credential_verifier passed.`);
+      appendLog(`[REAL] Claim succeeded. Faucet paid out ${paid.toString()} stroops of real testnet XLM to this address — a real cross-contract credential check passed.`);
       setFaucetHasClaimed(true);
     } catch (err: any) {
-      appendLog(`[REAL] claim() reverted on-chain: ${err.message ?? err}. Expected unless this wallet is the pre-registered demo credential subject (${DEMO_CREDENTIAL_SUBJECT.substring(0, 8)}...) — see the note in soroban.ts.`);
+      appendLog(`[REAL] Claim reverted on-chain: ${err.message ?? err}. Expected unless this wallet is the pre-registered demo credential subject (${DEMO_CREDENTIAL_SUBJECT.substring(0, 8)}...).`);
     } finally {
       setFaucetClaiming(false);
     }
@@ -143,14 +143,14 @@ export const App: React.FC = () => {
     e.preventDefault();
     if (!walletAddress || !didDocument) return;
     setRegisteringDid(true);
-    appendLog('[REAL] Submitting a real register_did transaction — this needs your wallet signature.');
+    appendLog('[REAL] Submitting a real DID registration transaction — this needs your wallet signature.');
     try {
       await registerRealDid(walletAddress, didDocument);
       appendLog('[REAL] Transaction confirmed. Your DID is now really registered on testnet.');
       const record = await resolveRealDid(walletAddress);
       setResolvedDid(record);
     } catch (err: any) {
-      appendLog(`[REAL] register_did failed: ${err.message ?? err}`);
+      appendLog(`[REAL] DID registration failed: ${err.message ?? err}`);
     } finally {
       setRegisteringDid(false);
     }
@@ -158,22 +158,22 @@ export const App: React.FC = () => {
 
   const handleResolveDid = async () => {
     if (!walletAddress) return;
-    appendLog(`[REAL] Calling resolve_did on the real deployed did_registry for ${walletAddress.substring(0, 8)}...`);
+    appendLog(`[REAL] Looking up the real deployed DID registry for ${walletAddress.substring(0, 8)}...`);
     try {
       const record = await resolveRealDid(walletAddress);
       setResolvedDid(record);
       appendLog(record ? '[REAL] A real DID record was found on-chain.' : '[REAL] No DID registered for this address yet.');
     } catch (err: any) {
-      appendLog(`[REAL] resolve_did failed: ${err.message ?? err}`);
+      appendLog(`[REAL] DID lookup failed: ${err.message ?? err}`);
     }
   };
 
   const handleVerifyCredential = async () => {
     setVerifyingCredential(true);
-    appendLog(`[REAL] Calling verify_proof on the real deployed verifier (${CREDENTIAL_VERIFIER_ID.substring(0, 8)}...) with a real Merkle proof for the pre-registered demo identity...`);
+    appendLog(`[REAL] Calling the real deployed verifier (${CREDENTIAL_VERIFIER_ID.substring(0, 8)}...) with a real Merkle proof for the pre-registered demo identity...`);
     try {
       const result = await verifyRealCredentialOnChain();
-      appendLog(`[REAL] Testnet responded: verify_proof() = ${result}. This is a live simulateTransaction call against the one credential actually registered so far, not a mock.`);
+      appendLog(`[REAL] Testnet responded: verified = ${result}. This is a live on-chain call against the one credential actually registered so far, not a mock.`);
     } catch (err: any) {
       appendLog(`[REAL] On-chain verification call failed: ${err.message ?? err}`);
     } finally {
