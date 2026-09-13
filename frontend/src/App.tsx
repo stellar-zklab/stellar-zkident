@@ -61,7 +61,7 @@ export const App: React.FC = () => {
   const [zkProvers, setZkProvers] = useState<ZkProverItem[]>([
     { id: 'age', name: 'Age Compliance (Age ≥ 18)', status: 'Unverified' },
     { id: 'kyc', name: 'KYC Attestation (Tier ≥ 2)', status: 'Unverified' },
-    { id: 'membership', name: 'ASP Merkle Membership', status: 'Unverified' },
+    { id: 'membership', name: 'ASP Membership', status: 'Unverified' },
   ]);
 
   // Real, live read from reputation_nft — public state, no wallet needed. Loaded on mount
@@ -168,7 +168,7 @@ export const App: React.FC = () => {
 
   const handleVerifyCredential = async () => {
     setVerifyingCredential(true);
-    appendLog(`[REAL] Calling the real deployed verifier (${CREDENTIAL_VERIFIER_ID.substring(0, 8)}...) with a real Merkle proof for the pre-registered demo identity...`);
+    appendLog(`[REAL] Calling the real deployed verifier (${CREDENTIAL_VERIFIER_ID.substring(0, 8)}...) for the pre-registered demo identity...`);
     try {
       const result = await verifyRealCredentialOnChain();
       appendLog(`[REAL] Testnet responded: verified = ${result}. This is a live on-chain call against the one credential actually registered so far, not a mock.`);
@@ -343,7 +343,7 @@ export const App: React.FC = () => {
             <div style={{ borderTop: '1px solid #231d3d', paddingTop: '1rem', marginTop: '0.5rem' }}>
               <h3 style={{ fontSize: '0.9rem', fontWeight: 600, margin: '0 0 0.5rem 0', color: '#f8fafc' }}>Real Credential Verification</h3>
               <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 0.75rem 0' }}>
-                Verifies a real Merkle proof against the one credential actually registered by an ASP so far — for a fixed demo identity, not your connected wallet (no ASP has attested to an arbitrary wallet's credential yet). No signature needed.
+                Verifies the one credential actually registered by an ASP so far — for a fixed demo identity, not your connected wallet (no ASP has attested to an arbitrary wallet's credential yet). No signature needed.
               </p>
               <button
                 onClick={handleVerifyCredential}
