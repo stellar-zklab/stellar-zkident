@@ -182,11 +182,11 @@ export const App: React.FC = () => {
   const handleProve = async (id: ZkCircuit) => {
     setProvingId(id);
     setZkProvers(prev => prev.map(c => c.id === id ? { ...c, status: 'Verifying' } : c));
-    appendLog(`[REAL] Calling the real deployed ${id} verifier with a real Groth16 proof...`);
+    appendLog(`[REAL] Calling the real deployed ${id} verifier...`);
     try {
       const verified = await verifyRealZkProofOnChain(id);
       setZkProvers(prev => prev.map(c => c.id === id ? { ...c, status: verified ? 'Verified' : 'Failed' } : c));
-      appendLog(`[REAL] Testnet responded: verified = ${verified}. This is a live on-chain Groth16 BN254 pairing check, not a mock.`);
+      appendLog(`[REAL] Testnet responded: verified = ${verified}. This is a live on-chain check, not a mock.`);
     } catch (err: any) {
       setZkProvers(prev => prev.map(c => c.id === id ? { ...c, status: 'Failed' } : c));
       appendLog(`[REAL] On-chain proof verification failed: ${err.message ?? err}`);
@@ -198,7 +198,7 @@ export const App: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0b0914', color: '#e0e0e0' }}>
       <div style={{ background: 'linear-gradient(135deg, #4338ca, #3730a3)', color: '#fff', padding: '0.65rem 1.5rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center' }}>
-        ✓ Wired to real deployed testnet contracts, including real Groth16 zero-knowledge proof verification. Each ZK prover submits one fixed real proof — see banner in{' '}
+        ✓ Wired to real deployed testnet contracts, including real zero-knowledge proof verification. Each prover submits one fixed real proof — see banner in{' '}
         <a
           href="https://github.com/stellar-zklab/stellar-zkident/blob/main/frontend/src/soroban.ts"
           target="_blank"
