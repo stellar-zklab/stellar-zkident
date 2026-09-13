@@ -124,9 +124,8 @@ export const Portfolio: React.FC<PortfolioProps> = ({ initialAddress }) => {
         <h2 style={{ fontSize: '1rem', fontWeight: 600, margin: 0, color: '#f8fafc' }}>Ecosystem Portfolio</h2>
         <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>
           One address, real state pulled live from four contracts across three repos — this one, <code>stellar-zkstream</code>, and{' '}
-          <code>soroban-yield-vault</code> (all read-only, no wallet signature needed). Enter any real testnet address; most will
-          honestly show empty/zero — that's correct, not a bug, unless it's an address that's actually interacted with these
-          contracts.
+          <code>soroban-yield-vault</code> (all read-only, no wallet signature needed). Most addresses will show empty or zero
+          unless they've actually interacted with these contracts.
         </p>
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <input
