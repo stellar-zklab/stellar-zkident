@@ -6,6 +6,7 @@ import {
   registerRealDid,
   resolveRealDid,
   verifyRealCredentialOnChain,
+  verifyRealZkProofOnChain,
   getRealReputation,
   hasClaimedFromFaucet,
   getFaucetClaimAmount,
@@ -17,30 +18,28 @@ import {
   DEMO_REPUTATION_SUBJECT,
   DIDRecord,
   ReputationData,
+  ZkCircuit,
 } from './soroban';
 
-// This UI is wired to REAL, deployed Stellar testnet contracts for two things — DID
-// registration and one pre-registered credential's Merkle verification — not mocked. See
-// soroban.ts and ../deployments/testnet.json. The four Noir-circuit provers below (age,
-// KYC tier, residency, ASP Merkle membership as zero-knowledge proofs) remain genuinely
-// unverified: no Noir/UltraPlonk proof system is wired to anything on-chain yet, and
-// there's real doubt Soroban's host functions support UltraPlonk verification at all
-// (they target Groth16/BN254 pairing checks, which is why stellar-zkstream's circuits
-// could go real and these can't yet without a redesign). That section is left as an
-// honest, explicitly-labeled mockup rather than silently removed.
+// This UI is wired to REAL, deployed Stellar testnet contracts throughout: DID
+// registration, one pre-registered credential's Merkle verification, and — as of
+// 2026-09-13 — real Groth16 BN254 zero-knowledge proof verification for all three circuits
+// this repo actually has (age, KYC tier, ASP Merkle membership). Each "Verify Real Proof"
+// button below submits that circuit's one real precomputed proof to its own deployed
+// zk_verifier instance — see soroban.ts for where those come from and why only one fixed
+// proof per circuit exists so far (general in-browser proof generation is real future work).
 
-interface CredentialItem {
-  id: string;
+interface ZkProverItem {
+  id: ZkCircuit;
   name: string;
-  circuit: string;
-  status: 'Verified (demo only)' | 'Unverified';
+  status: 'Unverified' | 'Verifying' | 'Verified' | 'Failed';
 }
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'identity' | 'portfolio'>('identity');
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [walletError, setWalletError] = useState<string | null>(null);
-  const [provingId, setProvingId] = useState<string | null>(null);
+  const [provingId, setProvingId] = useState<ZkCircuit | null>(null);
   const [didDocument, setDidDocument] = useState('');
   const [registeringDid, setRegisteringDid] = useState(false);
   const [resolvedDid, setResolvedDid] = useState<DIDRecord | null | undefined>(undefined);
@@ -59,11 +58,10 @@ export const App: React.FC = () => {
   ]);
   const appendLog = (line: string) => setLogs((prev) => [...prev, line]);
 
-  const [credentials, setCredentials] = useState<CredentialItem[]>([
-    { id: 'age', name: 'Age Compliance (Age ≥ 18)', circuit: 'age_proof.nr', status: 'Unverified' },
-    { id: 'kyc', name: 'KYC Attestation (Tier ≥ Silver)', circuit: 'kyc_tier_proof.nr', status: 'Unverified' },
-    { id: 'residency', name: 'Jurisdiction Compliance', circuit: 'residency_proof.nr', status: 'Unverified' },
-    { id: 'merkle', name: 'ASP Merkle Membership', circuit: 'membership_proof.nr', status: 'Unverified' }
+  const [zkProvers, setZkProvers] = useState<ZkProverItem[]>([
+    { id: 'age', name: 'Age Compliance (Age ≥ 18)', status: 'Unverified' },
+    { id: 'kyc', name: 'KYC Attestation (Tier ≥ 2)', status: 'Unverified' },
+    { id: 'membership', name: 'ASP Merkle Membership', status: 'Unverified' },
   ]);
 
   // Real, live read from reputation_nft — public state, no wallet needed. Loaded on mount
@@ -181,21 +179,26 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleProve = (id: string) => {
+  const handleProve = async (id: ZkCircuit) => {
     setProvingId(id);
-    appendLog(`[DEMO] Walking through the "prove ${id}" UI — no real Noir circuit runs, no proof is generated.`);
-
-    setTimeout(() => {
-      setCredentials(prev => prev.map(c => c.id === id ? { ...c, status: 'Verified (demo only)' } : c));
+    setZkProvers(prev => prev.map(c => c.id === id ? { ...c, status: 'Verifying' } : c));
+    appendLog(`[REAL] Calling the real deployed ${id} verifier with a real Groth16 proof...`);
+    try {
+      const verified = await verifyRealZkProofOnChain(id);
+      setZkProvers(prev => prev.map(c => c.id === id ? { ...c, status: verified ? 'Verified' : 'Failed' } : c));
+      appendLog(`[REAL] Testnet responded: verified = ${verified}. This is a live on-chain Groth16 BN254 pairing check, not a mock.`);
+    } catch (err: any) {
+      setZkProvers(prev => prev.map(c => c.id === id ? { ...c, status: 'Failed' } : c));
+      appendLog(`[REAL] On-chain proof verification failed: ${err.message ?? err}`);
+    } finally {
       setProvingId(null);
-      appendLog(`[DEMO] Marked "${id}" as demo-verified in this browser tab only. No Noir/UltraPlonk proof system is wired to on-chain verification yet.`);
-    }, 600);
+    }
   };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0b0914', color: '#e0e0e0' }}>
       <div style={{ background: 'linear-gradient(135deg, #4338ca, #3730a3)', color: '#fff', padding: '0.65rem 1.5rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'center' }}>
-        ✓ DID registry &amp; one pre-registered credential are wired to real deployed contracts. The Noir circuit provers below are still an honest mockup — see banner in{' '}
+        ✓ Wired to real deployed testnet contracts, including real Groth16 zero-knowledge proof verification. Each ZK prover submits one fixed real proof — see banner in{' '}
         <a
           href="https://github.com/stellar-zklab/stellar-zkident/blob/main/frontend/src/soroban.ts"
           target="_blank"
@@ -204,15 +207,7 @@ export const App: React.FC = () => {
         >
           soroban.ts
         </a>{' '}
-        /{' '}
-        <a
-          href="https://github.com/stellar-zklab/stellar-zkident/blob/main/frontend/src/App.tsx"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ color: '#fff', textDecoration: 'underline' }}
-        >
-          App.tsx
-        </a>.
+        for why.
       </div>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
@@ -389,17 +384,18 @@ export const App: React.FC = () => {
           <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ background: '#131022', padding: '1.5rem', borderRadius: '10px', border: '1px solid #231d3d', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <h2 style={{ fontSize: '0.95rem', fontWeight: 600, margin: 0, color: '#f8fafc' }}>
-                Noir Circuit Provers (Still Not Real)
+                Zero-Knowledge Provers (Real)
               </h2>
-              {credentials.map(c => (
+              {zkProvers.map(c => (
                 <div key={c.id} style={{ background: '#08060f', padding: '1rem', borderRadius: '8px', border: '1px solid #1c1733', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, color: '#f8fafc' }}>{c.name}</h3>
-                    <small style={{ color: '#818cf8', fontFamily: 'monospace', fontSize: '0.75rem' }}>{c.circuit}</small>
-                  </div>
-                  {c.status === 'Verified (demo only)' ? (
-                    <span style={{ background: 'rgba(180, 83, 9, 0.2)', color: '#fbbf24', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
-                      Demo Only — Not Verified
+                  <h3 style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, color: '#f8fafc' }}>{c.name}</h3>
+                  {c.status === 'Verified' ? (
+                    <span style={{ background: 'rgba(15, 118, 110, 0.2)', color: '#5eead4', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                      Verified on-chain
+                    </span>
+                  ) : c.status === 'Failed' ? (
+                    <span style={{ background: 'rgba(190, 18, 60, 0.2)', color: '#fda4af', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                      Verification failed
                     </span>
                   ) : (
                     <button
@@ -407,7 +403,7 @@ export const App: React.FC = () => {
                       disabled={provingId === c.id}
                       style={{ padding: '0.4rem 0.8rem', background: provingId === c.id ? '#312952' : '#4f46e5', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: provingId === c.id ? 'wait' : 'pointer', fontWeight: 600, fontSize: '0.8rem' }}
                     >
-                      {provingId === c.id ? 'Running demo...' : 'Run Demo (Not Real Proof)'}
+                      {provingId === c.id ? 'Verifying on-chain...' : 'Verify Real Proof On-Chain'}
                     </button>
                   )}
                 </div>
