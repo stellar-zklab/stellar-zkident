@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { StellarZkIdentClient } from '../src/client';
 
-const dummySign = vi.fn(async (xdr: string) => xdr);
+const dummySign = vi.fn(async (xdr: string) => ({ signedTxXdr: xdr }));
 
 const baseConfig = {
   didRegistryId: 'CDID0000000000000000000000000000000000000000000000000000000',

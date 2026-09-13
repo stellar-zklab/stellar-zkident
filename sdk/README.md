@@ -22,10 +22,7 @@ const zkident = new StellarZkIdentClient({
   didRegistryId: 'CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6',
   credentialVerifierId: 'CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF',
   reputationNftId: 'CDA34SUCSQDOCCY5B6HJJH4CQ5PUDWII6CY3BDONGKT5E3KTEWZJ47GD',
-  signTransaction: async (xdr, opts) => {
-    const { signedTxXdr } = await freighter.signTransaction(xdr, opts);
-    return signedTxXdr;
-  },
+  signTransaction: async (xdr, opts) => freighter.signTransaction(xdr, opts),
 });
 
 await zkident.registerDid(ownerAddress, JSON.stringify({ name: 'example' }));
@@ -39,10 +36,7 @@ const zkidentWithZk = new StellarZkIdentClient({
   didRegistryId: 'CDGDZX4OGVCWEYANDRSWKSK6LLYOGFRJDZQNFNNYPTQPAKELKR4TXLB6',
   credentialVerifierId: 'CDLRSLHALMX6OU5IHWY6CKTROK3SYENEA75K6OWSZCPAW4EOTR2OZGSF',
   ageProofVerifierId: '<age_proof zk_verifier address, see deployments/testnet.json>',
-  signTransaction: async (xdr, opts) => {
-    const { signedTxXdr } = await freighter.signTransaction(xdr, opts);
-    return signedTxXdr;
-  },
+  signTransaction: async (xdr, opts) => freighter.signTransaction(xdr, opts),
 });
 const isAdult = await zkidentWithZk.verifyAgeProof(proofBytes, publicInputBytes);
 ```
