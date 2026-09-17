@@ -17,7 +17,7 @@ soroban-sdk = { version = "25.0.0" }
 
 [dev-dependencies]
 soroban-sdk = { version = "25.0.0", features = ["testutils"] }
-ark-bn254 = "0.4"
+ark-bn254 = "0.6"
 ark-ec = "0.4"
 ark-ff = "0.4"
 ark-groth16 = "0.4"
