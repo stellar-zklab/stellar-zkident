@@ -20,9 +20,9 @@ soroban-sdk = { version = "25.0.0", features = ["testutils"] }
 ark-bn254 = "0.6"
 ark-ec = "0.6"
 ark-ff = "0.6"
-ark-groth16 = "0.4"
-ark-relations = "0.4"
-ark-snark = "0.4"
+ark-groth16 = "0.6"
+ark-relations = "0.6"
+ark-snark = "0.6"
 ark-std = { version = "0.6", features = ["std"] }
 
 [features]
