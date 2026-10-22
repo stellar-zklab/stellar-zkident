@@ -13,10 +13,10 @@ crate-type = ["cdylib", "rlib"]
 # contract in this workspace (only on-chain address/byte interop), so it can safely pin
 # its own version without touching the already-deployed did_registry/credential_verifier/
 # asp_registry/reputation_nft, which stay on 22.0.0 unchanged.
-soroban-sdk = { version = "25.0.0" }
+soroban-sdk = { version = "29.0.1" }
 
 [dev-dependencies]
-soroban-sdk = { version = "25.0.0", features = ["testutils"] }
+soroban-sdk = { version = "29.0.1", features = ["testutils"] }
 ark-bn254 = "0.6"
 ark-ec = "0.6"
 ark-ff = "0.6"
